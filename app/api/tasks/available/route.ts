@@ -35,14 +35,8 @@ export async function GET(request: NextRequest) {
 
     let results = await query;
 
-    // Filter by tag match if agent has tags
-    if (agent.tags && agent.tags.length > 0) {
-      results = results.filter((task) => {
-        if (!task.tags || task.tags.length === 0) return false;
-        // Check if any task tag matches agent tags
-        return task.tags.some((tag) => agent.tags!.includes(tag));
-      });
-    }
+    // Don't filter out tasks — show all available, sorted by match score
+    // Agents should see the full marketplace and decide themselves
 
     // Calculate match score for each task
     const tasksWithScore = results.map((task) => {
