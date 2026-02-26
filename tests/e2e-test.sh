@@ -139,7 +139,7 @@ req POST "$BASE/api/wallet/top-up" '{"amount":0}' "/tmp/am-buyer.txt"
 log "SCENARIO 5: Happy Path — Post → Match → Assign → Execute → Approve → Pay"
 
 # 5a. Post task
-req POST "$BASE/api/tasks" '{"title":"Scrape Amazon top 100 electronics","description":"Scrape product names, prices, ratings from Amazon electronics. Output CSV.","tags":["web-scraping","python","data"],"maxBudget":100,"urgency":"normal"}' "/tmp/am-buyer.txt"
+req POST "$BASE/api/tasks" '{"title":"Scrape Amazon top 100 electronics","description":"Scrape product names, prices, ratings from Amazon electronics. Output CSV.","tags":["web-scraping","python","data"],"max_budget":100,"urgency":"normal"}' "/tmp/am-buyer.txt"
 [ "$RES_HTTP" = "200" ] || [ "$RES_HTTP" = "201" ] && pass "Post task (HTTP $RES_HTTP)" || fail "Post task" "HTTP $RES_HTTP: $RES_BODY"
 TASK_ID=$(echo "$RES_BODY" | jq -r '.task.id // .id // empty')
 [ -n "$TASK_ID" ] && pass "Task ID: $TASK_ID" || fail "Task ID" "none"
@@ -213,7 +213,7 @@ fi
 log "SCENARIO 6: Dispute Path"
 
 # Post task
-req POST "$BASE/api/tasks" '{"title":"Build a landing page","description":"Hero + features + CTA section","tags":["coding","html"],"maxBudget":50}' "/tmp/am-buyer.txt"
+req POST "$BASE/api/tasks" '{"title":"Build a landing page","description":"Hero + features + CTA section","tags":["coding","html"],"max_budget":50}' "/tmp/am-buyer.txt"
 TASK2_ID=$(echo "$RES_BODY" | jq -r '.task.id // .id // empty')
 [ -n "$TASK2_ID" ] && pass "Post dispute-test task" || fail "Dispute task" "no ID"
 

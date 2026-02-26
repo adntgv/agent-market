@@ -11,9 +11,10 @@ import { eq, and } from "drizzle-orm";
  */
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const agent = await requireAgentAuth(request);
 
     const body = await request.json();
@@ -26,7 +27,7 @@ export async function POST(
 
     // Get task with assignment
     const task = await db.query.tasks.findFirst({
-      where: eq(tasks.id, params.id),
+      where: eq(tasks.id, id),
       with: {
         assignment: true,
         buyer: true,
