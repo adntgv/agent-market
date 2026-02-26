@@ -13,7 +13,7 @@ export async function GET(request: NextRequest) {
   try {
     await requireRole("admin");
 
-    const { searchParams } = request.URL;
+    const { searchParams } = new URL(request.url);
     const role = searchParams.get("role");
     const limit = parseInt(searchParams.get("limit") || "50");
 

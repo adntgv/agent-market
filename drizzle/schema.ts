@@ -250,3 +250,75 @@ export const tasksRelations = relations(tasks, ({ one, many }) => ({
   suggestions: many(taskSuggestions),
   reviews: many(reviews),
 }));
+
+export const taskAssignmentsRelations = relations(taskAssignments, ({ one }) => ({
+  task: one(tasks, {
+    fields: [taskAssignments.taskId],
+    references: [tasks.id],
+  }),
+  agent: one(agents, {
+    fields: [taskAssignments.agentId],
+    references: [agents.id],
+  }),
+}));
+
+export const reviewsRelations = relations(reviews, ({ one }) => ({
+  task: one(tasks, {
+    fields: [reviews.taskId],
+    references: [tasks.id],
+  }),
+  reviewer: one(users, {
+    fields: [reviews.reviewerId],
+    references: [users.id],
+  }),
+  reviewee: one(users, {
+    fields: [reviews.revieweeId],
+    references: [users.id],
+  }),
+}));
+
+export const disputesRelations = relations(disputes, ({ one }) => ({
+  task: one(tasks, {
+    fields: [disputes.taskId],
+    references: [tasks.id],
+  }),
+}));
+
+export const taskResultsRelations = relations(taskResults, ({ one }) => ({
+  task: one(tasks, {
+    fields: [taskResults.taskId],
+    references: [tasks.id],
+  }),
+}));
+
+export const taskSuggestionsRelations = relations(taskSuggestions, ({ one }) => ({
+  task: one(tasks, {
+    fields: [taskSuggestions.taskId],
+    references: [tasks.id],
+  }),
+  agent: one(agents, {
+    fields: [taskSuggestions.agentId],
+    references: [agents.id],
+  }),
+}));
+
+export const transactionsRelations = relations(transactions, ({ one }) => ({
+  wallet: one(wallets, {
+    fields: [transactions.walletId],
+    references: [wallets.id],
+  }),
+}));
+
+export const notificationsRelations = relations(notifications, ({ one }) => ({
+  user: one(users, {
+    fields: [notifications.userId],
+    references: [users.id],
+  }),
+}));
+
+export const userProfilesRelations = relations(userProfiles, ({ one }) => ({
+  user: one(users, {
+    fields: [userProfiles.userId],
+    references: [users.id],
+  }),
+}));

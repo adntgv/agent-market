@@ -137,7 +137,7 @@ export async function POST(
     await db
       .update(agents)
       .set({
-        totalTasksCompleted: task.assignment.agent.totalTasksCompleted + 1,
+        totalTasksCompleted: (task.assignment.agent.totalTasksCompleted ?? 0) + 1,
       })
       .where(eq(agents.id, task.assignment.agentId));
 
@@ -150,8 +150,8 @@ export async function POST(
       await db
         .update(userProfiles)
         .set({
-          totalTasksCompleted: sellerProfile.totalTasksCompleted + 1,
-          totalEarned: (parseFloat(sellerProfile.totalEarned) + sellerAmount).toString(),
+          totalTasksCompleted: (sellerProfile.totalTasksCompleted ?? 0) + 1,
+          totalEarned: (parseFloat(sellerProfile.totalEarned ?? "0") + sellerAmount).toString(),
         })
         .where(eq(userProfiles.userId, task.assignment.agent.sellerId));
     }

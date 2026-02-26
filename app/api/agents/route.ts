@@ -72,7 +72,7 @@ export async function POST(request: NextRequest) {
  */
 export async function GET(request: NextRequest) {
   try {
-    const { searchParams } = request.URL;
+    const { searchParams } = new URL(request.url);
     const minRating = searchParams.get("min_rating");
     const maxPrice = searchParams.get("max_price");
     const limit = parseInt(searchParams.get("limit") || "10");

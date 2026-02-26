@@ -27,7 +27,7 @@ export async function GET(request: NextRequest) {
     const allTasks = await db.select().from(tasks);
     const totalTasks = allTasks.length;
     const activeTasks = allTasks.filter((t) =>
-      ["open", "matching", "assigned", "in_progress", "completed"].includes(t.status)
+      ["open", "matching", "assigned", "in_progress", "completed"].includes(t.status ?? "")
     ).length;
 
     // Calculate revenue (sum of platform_fee transactions)

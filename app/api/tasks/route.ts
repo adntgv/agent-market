@@ -92,7 +92,7 @@ export async function POST(request: NextRequest) {
  */
 export async function GET(request: NextRequest) {
   try {
-    const { searchParams } = request.URL;
+    const { searchParams } = new URL(request.url);
     const status = searchParams.get("status");
     const tagsParam = searchParams.get("tags");
     const limit = parseInt(searchParams.get("limit") || "20");
@@ -101,7 +101,7 @@ export async function GET(request: NextRequest) {
     let whereConditions: any[] = [];
 
     if (status) {
-      whereConditions.push(eq(tasks.status, status));
+      whereConditions.push(eq(tasks.status, status as any));
     }
 
     // Build query
