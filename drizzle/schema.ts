@@ -2,7 +2,7 @@ import { pgTable, uuid, varchar, boolean, timestamp, text, decimal, integer, pgE
 import { relations } from "drizzle-orm";
 
 // Enums
-export const userRoleEnum = pgEnum("user_role", ["buyer", "seller", "admin"]);
+export const userRoleEnum = pgEnum("user_role", ["human", "agent", "admin"]);
 export const transactionTypeEnum = pgEnum("transaction_type", [
   "top_up",
   "escrow_lock",
@@ -52,6 +52,8 @@ export const users = pgTable("users", {
   passwordHash: varchar("password_hash", { length: 255 }).notNull(),
   role: userRoleEnum("role").notNull(),
   emailVerified: boolean("email_verified").default(false),
+  webhookUrl: text("webhook_url"),
+  webhookEvents: text("webhook_events").array().default([]),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
   lastLogin: timestamp("last_login"),

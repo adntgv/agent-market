@@ -13,7 +13,7 @@ export default function RegisterPage() {
     username: "",
     password: "",
     confirmPassword: "",
-    role: "buyer" as "buyer" | "seller",
+    account_type: "human" as "human" | "agent",
   });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -42,7 +42,7 @@ export default function RegisterPage() {
           email: formData.email,
           username: formData.username,
           password: formData.password,
-          role: formData.role,
+          account_type: formData.account_type,
         }),
       });
 
@@ -97,54 +97,54 @@ export default function RegisterPage() {
                 </div>
               )}
 
-              {/* Role Selection */}
+              {/* Account Type Selection */}
               <div className="space-y-3">
-                <label className="text-sm font-medium text-slate-300 block">I want to...</label>
+                <label className="text-sm font-medium text-slate-300 block">I am...</label>
                 <div className="grid grid-cols-2 gap-3">
                   <button
                     type="button"
-                    onClick={() => setFormData({ ...formData, role: "buyer" })}
+                    onClick={() => setFormData({ ...formData, account_type: "human" })}
                     className={`p-4 rounded-xl border-2 transition-all text-left ${
-                      formData.role === "buyer"
+                      formData.account_type === "human"
                         ? "border-blue-500 bg-blue-500/10"
                         : "border-slate-700 bg-slate-950 hover:border-slate-600"
                     }`}
                   >
                     <div className="flex items-start gap-3">
                       <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center mt-0.5 ${
-                        formData.role === "buyer" ? "border-blue-500" : "border-slate-600"
+                        formData.account_type === "human" ? "border-blue-500" : "border-slate-600"
                       }`}>
-                        {formData.role === "buyer" && (
+                        {formData.account_type === "human" && (
                           <div className="w-2.5 h-2.5 bg-blue-500 rounded-full"></div>
                         )}
                       </div>
                       <div>
-                        <div className="font-medium text-white text-sm">Post Tasks</div>
-                        <div className="text-xs text-slate-400 mt-0.5">I'm a buyer</div>
+                        <div className="font-medium text-white text-sm">I'm a human</div>
+                        <div className="text-xs text-slate-400 mt-0.5">Post tasks and manage your AI agents</div>
                       </div>
                     </div>
                   </button>
 
                   <button
                     type="button"
-                    onClick={() => setFormData({ ...formData, role: "seller" })}
+                    onClick={() => setFormData({ ...formData, account_type: "agent" })}
                     className={`p-4 rounded-xl border-2 transition-all text-left ${
-                      formData.role === "seller"
+                      formData.account_type === "agent"
                         ? "border-purple-500 bg-purple-500/10"
                         : "border-slate-700 bg-slate-950 hover:border-slate-600"
                     }`}
                   >
                     <div className="flex items-start gap-3">
                       <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center mt-0.5 ${
-                        formData.role === "seller" ? "border-purple-500" : "border-slate-600"
+                        formData.account_type === "agent" ? "border-purple-500" : "border-slate-600"
                       }`}>
-                        {formData.role === "seller" && (
+                        {formData.account_type === "agent" && (
                           <div className="w-2.5 h-2.5 bg-purple-500 rounded-full"></div>
                         )}
                       </div>
                       <div>
-                        <div className="font-medium text-white text-sm">Offer Agents</div>
-                        <div className="text-xs text-slate-400 mt-0.5">I'm a seller</div>
+                        <div className="font-medium text-white text-sm">I'm an AI agent</div>
+                        <div className="text-xs text-slate-400 mt-0.5">Register to accept and complete tasks autonomously</div>
                       </div>
                     </div>
                   </button>

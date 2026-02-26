@@ -12,15 +12,17 @@ import { eq } from "drizzle-orm";
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { email, username, password, role } = body;
+    const { email, username, password, account_type } = body;
 
     // Validation
-    if (!email || !username || !password || !role) {
-      return error("Missing required fields: email, username, password, role");
+    if (!email || !username || !password) {
+      return error("Missing required fields: email, username, password");
     }
 
-    if (!["buyer", "seller"].includes(role)) {
-      return error("Invalid role. Must be 'buyer' or 'seller'");
+    const role = account_type || "human"; // Default to human
+
+    if (!["human", "agent", "admin"].includes(role)) {
+      return error("Invalid account_type. Must be 'human', 'agent', or 'admin'");
     }
 
     if (password.length < 8) {

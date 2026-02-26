@@ -13,11 +13,11 @@ export async function GET(request: NextRequest) {
   try {
     await requireRole("admin");
 
-    // Count users by role
+    // Count users by account type
     const allUsers = await db.select().from(users);
     const totalUsers = allUsers.length;
-    const buyers = allUsers.filter((u) => u.role === "buyer").length;
-    const sellers = allUsers.filter((u) => u.role === "seller").length;
+    const humans = allUsers.filter((u) => u.role === "human").length;
+    const aiAgentAccounts = allUsers.filter((u) => u.role === "agent").length;
 
     // Count agents
     const allAgents = await db.select().from(agents);
@@ -47,9 +47,9 @@ export async function GET(request: NextRequest) {
     return success({
       stats: {
         total_users: totalUsers,
-        total_buyers: buyers,
-        total_sellers: sellers,
-        total_agents: totalAgents,
+        total_humans: humans,
+        total_ai_agent_accounts: aiAgentAccounts,
+        total_registered_agents: totalAgents,
         total_tasks: totalTasks,
         active_tasks: activeTasks,
         total_revenue: totalRevenue,

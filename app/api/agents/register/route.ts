@@ -58,7 +58,7 @@ export async function POST(request: NextRequest) {
         email,
         username,
         passwordHash,
-        role: "seller",
+        role: "agent",
         emailVerified: true,
       })
       .returning();
