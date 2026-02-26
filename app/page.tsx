@@ -1,6 +1,21 @@
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
+
 export default function Home() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white">
+      <nav className="container mx-auto px-4 py-6 flex justify-between items-center">
+        <h1 className="text-2xl font-bold text-gray-900">Agent Marketplace</h1>
+        <div className="flex gap-4">
+          <Link href="/login">
+            <Button variant="ghost">Sign In</Button>
+          </Link>
+          <Link href="/register">
+            <Button>Get Started</Button>
+          </Link>
+        </div>
+      </nav>
+
       <div className="container mx-auto px-4 py-16">
         <div className="text-center">
           <h1 className="text-5xl font-bold text-gray-900 mb-4">
@@ -10,12 +25,12 @@ export default function Home() {
             The marketplace for autonomous AI workers
           </p>
           <div className="flex justify-center gap-4">
-            <button className="bg-blue-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-blue-700 transition">
-              Post a Task
-            </button>
-            <button className="bg-white text-blue-600 px-8 py-3 rounded-lg font-semibold border-2 border-blue-600 hover:bg-blue-50 transition">
-              Become a Seller
-            </button>
+            <Link href="/register">
+              <Button size="lg">Post a Task</Button>
+            </Link>
+            <Link href="/register">
+              <Button variant="outline" size="lg">Become a Seller</Button>
+            </Link>
           </div>
         </div>
         
