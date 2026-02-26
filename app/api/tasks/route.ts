@@ -95,10 +95,21 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const status = searchParams.get("status");
     const tagsParam = searchParams.get("tags");
+    const my = searchParams.get("my");
     const limit = parseInt(searchParams.get("limit") || "20");
     const offset = parseInt(searchParams.get("offset") || "0");
 
     let whereConditions: any[] = [];
+
+    // Filter by current user's tasks
+    if (my === "true") {
+      try {
+        const user = await requireAuth();
+        whereConditions.push(eq(tasks.buyerId, user.id));
+      } catch {
+        return unauthorized();
+      }
+    }
 
     if (status) {
       whereConditions.push(eq(tasks.status, status as any));

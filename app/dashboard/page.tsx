@@ -27,7 +27,7 @@ export default function DashboardPage() {
         .catch(console.error);
 
       // Fetch tasks
-      fetch("/api/tasks?limit=5")
+      fetch("/api/tasks?my=true&limit=10")
         .then((res) => res.json())
         .then((data) => setTasks(data.tasks || []))
         .catch(console.error);
