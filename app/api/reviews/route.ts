@@ -4,6 +4,8 @@ import { reviews, tasks, agents } from "@/drizzle/schema";
 import { requireAuth } from "@/lib/auth/session";
 import { success, error, unauthorized, serverError } from "@/lib/utils/api";
 import { eq, avg } from "drizzle-orm";
+import { sanitizeReviewText } from "@/lib/security/sanitize";
+import { validateUUID, validateRating } from "@/lib/security/validate";
 
 /**
  * POST /api/reviews
@@ -19,13 +21,24 @@ export async function POST(request: NextRequest) {
       return error("Missing required fields: task_id, rating");
     }
 
-    if (rating < 1 || rating > 5) {
-      return error("Rating must be between 1 and 5");
+    // Validate inputs
+    let validatedTaskId: string;
+    let validatedRating: number;
+    let sanitizedComment: string | null = null;
+    
+    try {
+      validatedTaskId = validateUUID(task_id, 'task_id');
+      validatedRating = validateRating(rating);
+      if (comment) {
+        sanitizedComment = sanitizeReviewText(comment);
+      }
+    } catch (validationError: any) {
+      return error(validationError.message);
     }
 
     // Get task
     const task = await db.query.tasks.findFirst({
-      where: eq(tasks.id, task_id),
+      where: eq(tasks.id, validatedTaskId),
       with: {
         assignment: {
           with: {
@@ -58,53 +71,58 @@ export async function POST(request: NextRequest) {
       return unauthorized("You can only review tasks you're involved in");
     }
 
-    // Check if review already exists
-    const existingReview = await db.query.reviews.findFirst({
-      where: (reviews, { and, eq }) =>
-        and(eq(reviews.taskId, task_id), eq(reviews.reviewerId, user.id)),
-    });
-
-    if (existingReview) {
-      return error("You have already reviewed this task");
-    }
-
-    // Create review
-    const [review] = await db
-      .insert(reviews)
-      .values({
-        taskId: task_id,
-        reviewerId: user.id,
-        revieweeId,
-        rating,
-        comment: comment || null,
-      })
-      .returning();
-
-    // Update agent rating if seller is being reviewed
-    if (task.assignment && revieweeId === task.assignment.agent.sellerId) {
-      // Calculate new average rating for the agent
-      const allReviews = await db.query.reviews.findMany({
-        where: eq(reviews.revieweeId, revieweeId),
+    // Use database transaction for atomic operation
+    const result = await db.transaction(async (tx) => {
+      // Check if review already exists
+      const existingReview = await tx.query.reviews.findFirst({
+        where: (reviews, { and, eq }) =>
+          and(eq(reviews.taskId, validatedTaskId), eq(reviews.reviewerId, user.id)),
       });
 
-      const avgRating =
-        allReviews.reduce((sum, r) => sum + r.rating, 0) / allReviews.length;
+      if (existingReview) {
+        throw new Error("You have already reviewed this task");
+      }
 
-      await db
-        .update(agents)
-        .set({
-          rating: avgRating.toFixed(2),
+      // Create review
+      const [review] = await tx
+        .insert(reviews)
+        .values({
+          taskId: validatedTaskId,
+          reviewerId: user.id,
+          revieweeId,
+          rating: validatedRating,
+          comment: sanitizedComment,
         })
-        .where(eq(agents.id, task.assignment.agentId));
-    }
+        .returning();
+
+      // Update agent rating if seller is being reviewed
+      if (task.assignment && revieweeId === task.assignment.agent.sellerId) {
+        // Calculate new average rating for the agent
+        const allReviews = await tx.query.reviews.findMany({
+          where: eq(reviews.revieweeId, revieweeId),
+        });
+
+        const avgRating =
+          allReviews.reduce((sum, r) => sum + r.rating, 0) / allReviews.length;
+
+        await tx
+          .update(agents)
+          .set({
+            rating: avgRating.toFixed(2),
+          })
+          .where(eq(agents.id, task.assignment!.agentId));
+      }
+
+      return review;
+    });
 
     return success(
       {
         review: {
-          id: review.id,
-          task_id: review.taskId,
-          rating: review.rating,
-          created_at: review.createdAt,
+          id: result.id,
+          task_id: result.taskId,
+          rating: result.rating,
+          created_at: result.createdAt,
         },
       },
       201

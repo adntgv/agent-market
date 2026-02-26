@@ -5,12 +5,18 @@ import { requireAuth, requireRole } from "@/lib/auth/session";
 import { success, error, unauthorized, serverError } from "@/lib/utils/api";
 import { findTopMatches } from "@/lib/utils/matching";
 import { eq, desc, and, arrayContains } from "drizzle-orm";
+import { sanitizeTaskTitle, sanitizeTaskDescription, sanitizeTags } from "@/lib/security/sanitize";
+import { validateAmount } from "@/lib/security/validate";
+import { logTaskOperation, logSecurityEvent } from "@/lib/security/audit-log";
+import { getClientIp } from "@/lib/security/rate-limit";
 
 /**
  * POST /api/tasks
  * Create a new task
  */
 export async function POST(request: NextRequest) {
+  const ip = getClientIp(request);
+  
   try {
     const user = await requireAuth();
 
@@ -22,8 +28,29 @@ export async function POST(request: NextRequest) {
       return error("Missing required fields: title, description, max_budget");
     }
 
-    if (parseFloat(max_budget) <= 0) {
-      return error("max_budget must be greater than 0");
+    // Sanitize and validate inputs
+    let sanitizedTitle: string;
+    let sanitizedDescription: string;
+    let sanitizedTags: string[];
+    let validatedBudget: number;
+    
+    try {
+      sanitizedTitle = sanitizeTaskTitle(title);
+      sanitizedDescription = sanitizeTaskDescription(description);
+      sanitizedTags = tags ? sanitizeTags(tags) : [];
+      validatedBudget = validateAmount(max_budget, 'max_budget');
+    } catch (validationError: any) {
+      logSecurityEvent(
+        'security.validation_failed',
+        {
+          reason: 'task_creation_validation_failed',
+          error: validationError.message,
+          title: title?.substring(0, 100),
+        },
+        user.id,
+        ip
+      );
+      return error(validationError.message);
     }
 
     // Create task
@@ -31,10 +58,10 @@ export async function POST(request: NextRequest) {
       .insert(tasks)
       .values({
         buyerId: user.id,
-        title,
-        description,
-        tags: tags || [],
-        maxBudget: max_budget.toString(),
+        title: sanitizedTitle,
+        description: sanitizedDescription,
+        tags: sanitizedTags,
+        maxBudget: validatedBudget.toFixed(2),
         urgency: urgency || "normal",
         autoAssign: auto_assign || false,
         status: "open",
@@ -65,6 +92,20 @@ export async function POST(request: NextRequest) {
         .set({ status: "matching" })
         .where(eq(tasks.id, task.id));
     }
+
+    // Audit log
+    logTaskOperation(
+      'task.created',
+      user.id,
+      task.id,
+      {
+        title: sanitizedTitle,
+        maxBudget: validatedBudget,
+        tags: sanitizedTags,
+        matchCount: matches.length,
+      },
+      ip
+    );
 
     return success(
       {

@@ -4,12 +4,18 @@ import { agents, users, userProfiles, wallets } from "@/drizzle/schema";
 import { success, error, serverError } from "@/lib/utils/api";
 import { generateApiKey, hashApiKey } from "@/lib/auth/agent-auth";
 import bcrypt from "bcryptjs";
+import { sanitizeAgentName, sanitizeAgentDescription, sanitizeTags, sanitizeString } from "@/lib/security/sanitize";
+import { validateAmount, validateEmail, validateUrl, validateStringLength } from "@/lib/security/validate";
+import { logAuthEvent, logSecurityEvent } from "@/lib/security/audit-log";
+import { getClientIp } from "@/lib/security/rate-limit";
 
 /**
  * POST /api/agents/register
  * Register a new agent programmatically
  */
 export async function POST(request: NextRequest) {
+  const ip = getClientIp(request);
+  
   try {
     const body = await request.json();
     const {
@@ -25,84 +31,128 @@ export async function POST(request: NextRequest) {
     } = body;
 
     // Validation
-    if (!name || !description || !base_price) {
-      return error("Missing required fields: name, description, base_price");
+    if (!name || !description || !base_price || !email || !username) {
+      return error("Missing required fields: name, description, base_price, email, username");
     }
 
-    if (parseFloat(base_price) <= 0) {
-      return error("base_price must be greater than 0");
+    // Validate and sanitize inputs
+    let sanitizedName: string;
+    let sanitizedDescription: string;
+    let sanitizedTags: string[];
+    let validatedBasePrice: number;
+    let validatedEmail: string;
+    let sanitizedUsername: string;
+    let validatedCallbackUrl: string | null = null;
+    
+    try {
+      sanitizedName = sanitizeAgentName(name);
+      sanitizedDescription = sanitizeAgentDescription(description);
+      sanitizedTags = sanitizeTags(tags);
+      validatedBasePrice = validateAmount(base_price, 'base_price');
+      validatedEmail = validateEmail(email);
+      sanitizedUsername = validateStringLength(sanitizeString(username), 3, 50, 'username');
+      
+      if (callback_url) {
+        validatedCallbackUrl = validateUrl(callback_url, 'callback_url');
+      }
+    } catch (validationError: any) {
+      logSecurityEvent(
+        'security.validation_failed',
+        {
+          reason: 'agent_registration_validation_failed',
+          error: validationError.message,
+        },
+        undefined,
+        ip
+      );
+      return error(validationError.message);
     }
-
-    if (!email || !username) {
-      return error("Missing required fields: email, username");
-    }
-
-    // Generate random password for the agent's user account
-    const randomPassword = Math.random().toString(36).slice(-12) + Math.random().toString(36).slice(-12);
-    const passwordHash = await bcrypt.hash(randomPassword, 10);
-
-    // Check if user already exists
-    const existingUser = await db.query.users.findFirst({
-      where: (users, { or, eq }) =>
-        or(eq(users.email, email), eq(users.username, username)),
-    });
-
-    if (existingUser) {
-      return error("User with this email or username already exists", 409);
-    }
-
-    // Create user account for the agent
-    const [user] = await db
-      .insert(users)
-      .values({
-        email,
-        username,
-        passwordHash,
-        role: "agent",
-        emailVerified: true,
-      })
-      .returning();
-
-    // Create user profile
-    await db.insert(userProfiles).values({
-      userId: user.id,
-      bio: `AI Agent: ${description}`,
-      tags: tags,
-    });
-
-    // Create wallet
-    await db.insert(wallets).values({
-      userId: user.id,
-      balance: "0.00",
-      escrowBalance: "0.00",
-    });
 
     // Generate API key
     const apiKey = generateApiKey();
     const apiKeyHash = hashApiKey(apiKey);
 
-    // Create agent
-    const [agent] = await db
-      .insert(agents)
-      .values({
-        sellerId: user.id,
-        name,
-        description,
-        tags,
-        pricingModel: pricing_model,
-        basePrice: base_price.toString(),
-        status: "active",
-        mcpEndpoint: callback_url || null,
-        apiKeyHash,
-      })
-      .returning();
+    // Use database transaction for atomic operation
+    const result = await db.transaction(async (tx) => {
+      // Check if user already exists
+      const existingUser = await tx.query.users.findFirst({
+        where: (users, { or, eq }) =>
+          or(eq(users.email, validatedEmail), eq(users.username, sanitizedUsername)),
+      });
+
+      if (existingUser) {
+        throw new Error("User with this email or username already exists");
+      }
+
+      // Generate random password for the agent's user account
+      const randomPassword = Math.random().toString(36).slice(-12) + Math.random().toString(36).slice(-12);
+      const passwordHash = await bcrypt.hash(randomPassword, 10);
+
+      // Create user account for the agent
+      const [user] = await tx
+        .insert(users)
+        .values({
+          email: validatedEmail,
+          username: sanitizedUsername,
+          passwordHash,
+          role: "agent",
+          emailVerified: true,
+        })
+        .returning();
+
+      // Create user profile
+      await tx.insert(userProfiles).values({
+        userId: user.id,
+        bio: `AI Agent: ${sanitizedDescription.substring(0, 200)}`,
+        tags: sanitizedTags,
+      });
+
+      // Create wallet
+      await tx.insert(wallets).values({
+        userId: user.id,
+        balance: "0.00",
+        escrowBalance: "0.00",
+      });
+
+      // Create agent
+      const [agent] = await tx
+        .insert(agents)
+        .values({
+          sellerId: user.id,
+          name: sanitizedName,
+          description: sanitizedDescription,
+          tags: sanitizedTags,
+          pricingModel: pricing_model,
+          basePrice: validatedBasePrice.toFixed(2),
+          status: "active",
+          mcpEndpoint: validatedCallbackUrl,
+          apiKeyHash,
+        })
+        .returning();
+
+      return { user, agent };
+    });
+
+    // Audit log
+    logAuthEvent(
+      'agent.api_key_generated',
+      {
+        agentId: result.agent.id,
+        userId: result.user.id,
+        agentName: sanitizedName,
+        email: validatedEmail,
+      },
+      true,
+      ip,
+      result.user.id
+    );
 
     return success(
       {
-        agent_id: agent.id,
+        agent_id: result.agent.id,
         api_key: apiKey, // Show only once!
-        name: agent.name,
-        status: agent.status,
+        name: result.agent.name,
+        status: result.agent.status,
         message:
           "Agent registered successfully. Store your API key securely - it won't be shown again!",
       },
