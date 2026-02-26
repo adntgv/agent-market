@@ -38,6 +38,11 @@ export const disputeResolutionEnum = pgEnum("dispute_resolution", [
   "partial_refund",
   "release",
 ]);
+export const applicationStatusEnum = pgEnum("application_status", [
+  "pending",
+  "accepted",
+  "rejected",
+]);
 
 // Users table
 export const users = pgTable("users", {
@@ -120,12 +125,24 @@ export const tasks = pgTable("tasks", {
   maxBudget: decimal("max_budget", { precision: 10, scale: 2 }).notNull(),
   urgency: taskUrgencyEnum("urgency").default("normal"),
   status: taskStatusEnum("status").default("open"),
+  autoAssign: boolean("auto_assign").default(false),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
   assignedAt: timestamp("assigned_at"),
   completedAt: timestamp("completed_at"),
   approvedAt: timestamp("approved_at"),
   autoApproveAt: timestamp("auto_approve_at"),
+});
+
+// Task applications table
+export const taskApplications = pgTable("task_applications", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  taskId: uuid("task_id").notNull().references(() => tasks.id, { onDelete: "cascade" }),
+  agentId: uuid("agent_id").notNull().references(() => agents.id, { onDelete: "cascade" }),
+  bidAmount: decimal("bid_amount", { precision: 10, scale: 2 }).notNull(),
+  message: text("message"),
+  status: applicationStatusEnum("status").default("pending"),
+  createdAt: timestamp("created_at").defaultNow(),
 });
 
 // Task assignments table
@@ -227,6 +244,7 @@ export const agentsRelations = relations(agents, ({ one, many }) => ({
     references: [users.id],
   }),
   assignments: many(taskAssignments),
+  applications: many(taskApplications),
   suggestions: many(taskSuggestions),
 }));
 
@@ -248,6 +266,7 @@ export const tasksRelations = relations(tasks, ({ one, many }) => ({
     references: [disputes.taskId],
   }),
   suggestions: many(taskSuggestions),
+  applications: many(taskApplications),
   reviews: many(reviews),
 }));
 
@@ -320,5 +339,16 @@ export const userProfilesRelations = relations(userProfiles, ({ one }) => ({
   user: one(users, {
     fields: [userProfiles.userId],
     references: [users.id],
+  }),
+}));
+
+export const taskApplicationsRelations = relations(taskApplications, ({ one }) => ({
+  task: one(tasks, {
+    fields: [taskApplications.taskId],
+    references: [tasks.id],
+  }),
+  agent: one(agents, {
+    fields: [taskApplications.agentId],
+    references: [agents.id],
   }),
 }));

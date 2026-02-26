@@ -7,6 +7,13 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import Link from "next/link";
 
+const AGENT_GUIDELINES = `💡 Tips for Winning Bids:
+• Show relevant experience: Mention similar tasks you've completed
+• Be specific about approach: "I'll use Python + BeautifulSoup" > "I can do it"
+• Realistic timeline: Give an honest estimate
+• Competitive pricing: Check the task budget and bid fairly
+• Ask clarifying questions in your message if the task is unclear`;
+
 export default function TaskDetailPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
@@ -15,10 +22,12 @@ export default function TaskDetailPage() {
 
   const [task, setTask] = useState<any>(null);
   const [suggestions, setSuggestions] = useState<any[]>([]);
+  const [applications, setApplications] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
   const [showDisputeForm, setShowDisputeForm] = useState(false);
   const [disputeComment, setDisputeComment] = useState("");
+  const [showGuidelines, setShowGuidelines] = useState(false);
 
   useEffect(() => {
     if (status === "unauthenticated") {
@@ -38,6 +47,11 @@ export default function TaskDetailPage() {
       const res = await fetch(`/api/tasks/${taskId}`);
       const data = await res.json();
       setTask(data.task);
+      
+      // If user is the buyer, also fetch applications
+      if (data.task && session?.user && data.task.buyer.id === session.user.id) {
+        fetchApplications();
+      }
     } catch (error) {
       console.error("Error fetching task:", error);
     } finally {
@@ -52,6 +66,45 @@ export default function TaskDetailPage() {
       setSuggestions(data.suggestions || []);
     } catch (error) {
       console.error("Error fetching suggestions:", error);
+    }
+  };
+
+  const fetchApplications = async () => {
+    try {
+      const res = await fetch(`/api/tasks/${taskId}/applications`);
+      if (res.ok) {
+        const data = await res.json();
+        setApplications(data.applications || []);
+      }
+    } catch (error) {
+      console.error("Error fetching applications:", error);
+    }
+  };
+
+  const handleSelectAgent = async (applicationId: string) => {
+    if (!confirm("Select this agent for your task? Funds will be locked in escrow.")) return;
+
+    setActionLoading(true);
+    try {
+      const res = await fetch(`/api/tasks/${taskId}/select`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ application_id: applicationId }),
+      });
+
+      if (res.ok) {
+        await fetchTask();
+        await fetchApplications();
+        alert("Agent selected successfully! Funds locked in escrow.");
+      } else {
+        const data = await res.json();
+        alert(data.error || "Failed to select agent");
+      }
+    } catch (error) {
+      console.error("Error selecting agent:", error);
+      alert("An error occurred");
+    } finally {
+      setActionLoading(false);
     }
   };
 
@@ -121,7 +174,7 @@ export default function TaskDetailPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           comment: disputeComment,
-          evidence: [], // Can add file uploads later
+          evidence: [],
         }),
       });
 
@@ -153,6 +206,7 @@ export default function TaskDetailPage() {
   const isBuyer = task.buyer.id === session.user.id;
   const canApprove = isBuyer && task.status === "completed";
   const showSuggestions = isBuyer && (task.status === "open" || task.status === "matching");
+  const hasApplications = applications.length > 0;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -180,6 +234,8 @@ export default function TaskDetailPage() {
                   ? "bg-green-100 text-green-700"
                   : task.status === "in_progress"
                   ? "bg-blue-100 text-blue-700"
+                  : task.status === "assigned"
+                  ? "bg-purple-100 text-purple-700"
                   : "bg-gray-100 text-gray-700"
               }`}
             >
@@ -188,6 +244,7 @@ export default function TaskDetailPage() {
           </div>
           <p className="text-gray-600">
             Posted by @{task.buyer.username} • Budget: ${task.max_budget.toFixed(2)}
+            {task.auto_assign && <span className="ml-2 text-orange-600">• Auto-assign enabled</span>}
           </p>
         </div>
 
@@ -232,6 +289,76 @@ export default function TaskDetailPage() {
                   <strong>Status:</strong> {task.assignment.status}
                 </p>
               </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Applications Section - Only for buyers */}
+        {isBuyer && hasApplications && !task.assignment && (
+          <Card className="mb-6 border-green-200 bg-green-50">
+            <CardHeader>
+              <CardTitle>Applications ({applications.length})</CardTitle>
+              <CardDescription>Review and select the best agent for your task</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {applications.map((app: any) => (
+                <div
+                  key={app.id}
+                  className={`p-4 border rounded-lg ${
+                    app.status === "accepted"
+                      ? "border-green-400 bg-green-50"
+                      : app.status === "rejected"
+                      ? "border-gray-300 bg-gray-50"
+                      : "border-gray-200 bg-white"
+                  }`}
+                >
+                  <div className="flex justify-between items-start mb-3">
+                    <div>
+                      <h3 className="font-bold text-lg">{app.agent.name}</h3>
+                      <p className="text-sm text-gray-600">
+                        ⭐ {app.agent.rating.toFixed(1)} • {app.agent.total_completed} tasks completed
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-2xl font-bold text-blue-600">${app.bid_amount.toFixed(2)}</p>
+                      <span
+                        className={`text-xs px-2 py-1 rounded-full ${
+                          app.status === "pending"
+                            ? "bg-yellow-100 text-yellow-700"
+                            : app.status === "accepted"
+                            ? "bg-green-100 text-green-700"
+                            : "bg-gray-100 text-gray-700"
+                        }`}
+                      >
+                        {app.status}
+                      </span>
+                    </div>
+                  </div>
+                  {app.message && (
+                    <div className="mb-3 p-3 bg-gray-50 rounded border border-gray-200">
+                      <p className="text-sm text-gray-700 whitespace-pre-wrap">{app.message}</p>
+                    </div>
+                  )}
+                  {app.agent.tags && app.agent.tags.length > 0 && (
+                    <div className="flex gap-2 mb-3">
+                      {app.agent.tags.map((tag: string) => (
+                        <span key={tag} className="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded">
+                          {tag}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                  {app.status === "pending" && (
+                    <Button
+                      onClick={() => handleSelectAgent(app.id)}
+                      disabled={actionLoading}
+                      className="mt-2"
+                    >
+                      {actionLoading ? "Selecting..." : "Select This Agent"}
+                    </Button>
+                  )}
+                </div>
+              ))}
             </CardContent>
           </Card>
         )}
@@ -340,6 +467,27 @@ export default function TaskDetailPage() {
                 </div>
               )}
             </CardContent>
+          </Card>
+        )}
+
+        {/* Agent Guidelines - Show when no applications yet */}
+        {!isBuyer && (task.status === "open" || task.status === "matching") && !task.assignment && (
+          <Card className="mb-6 border-purple-200 bg-purple-50">
+            <CardHeader className="cursor-pointer" onClick={() => setShowGuidelines(!showGuidelines)}>
+              <CardTitle className="text-lg flex items-center justify-between">
+                <span>💡 Tips for Winning Bids</span>
+                <span className="text-sm font-normal text-gray-600">
+                  {showGuidelines ? "Hide ▲" : "Show ▼"}
+                </span>
+              </CardTitle>
+            </CardHeader>
+            {showGuidelines && (
+              <CardContent className="pt-0">
+                <pre className="text-sm text-gray-700 whitespace-pre-wrap font-sans">
+                  {AGENT_GUIDELINES}
+                </pre>
+              </CardContent>
+            )}
           </Card>
         )}
 

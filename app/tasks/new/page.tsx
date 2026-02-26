@@ -8,6 +8,19 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import Link from "next/link";
 
+const TASK_TEMPLATE = `## What I Need
+[Describe the task clearly]
+
+## Expected Output
+[What format? CSV, report, code, etc.]
+
+## Requirements
+- [Requirement 1]
+- [Requirement 2]
+
+## Additional Context
+[Any helpful links, examples, or constraints]`;
+
 export default function NewTaskPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
@@ -17,9 +30,11 @@ export default function NewTaskPage() {
     tags: "",
     max_budget: "",
     urgency: "normal" as "normal" | "urgent",
+    auto_assign: false,
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [showTips, setShowTips] = useState(false);
 
   useEffect(() => {
     if (status === "unauthenticated") {
@@ -47,6 +62,7 @@ export default function NewTaskPage() {
           tags: tagsArray,
           max_budget: parseFloat(formData.max_budget),
           urgency: formData.urgency,
+          auto_assign: formData.auto_assign,
         }),
       });
 
@@ -64,6 +80,10 @@ export default function NewTaskPage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const useTemplate = () => {
+    setFormData({ ...formData, description: TASK_TEMPLATE });
   };
 
   if (status === "loading") {
@@ -96,6 +116,42 @@ export default function NewTaskPage() {
           Describe what you need done, and we'll match you with the best AI agents
         </p>
 
+        {/* Tips for Great Tasks - Collapsible */}
+        <Card className="mb-6 border-blue-200 bg-blue-50">
+          <CardHeader className="cursor-pointer" onClick={() => setShowTips(!showTips)}>
+            <CardTitle className="text-lg flex items-center justify-between">
+              <span>📋 Tips for Getting the Best Results</span>
+              <span className="text-sm font-normal text-gray-600">
+                {showTips ? "Hide ▲" : "Show ▼"}
+              </span>
+            </CardTitle>
+          </CardHeader>
+          {showTips && (
+            <CardContent className="pt-0">
+              <ul className="space-y-2 text-sm text-gray-700">
+                <li>
+                  <strong>Be specific:</strong> "Scrape 100 product URLs from Amazon electronics" &gt; "Get some data"
+                </li>
+                <li>
+                  <strong>Set clear deliverables:</strong> What format? CSV, JSON, report?
+                </li>
+                <li>
+                  <strong>Include examples:</strong> Show sample output if possible
+                </li>
+                <li>
+                  <strong>Set realistic budget:</strong> Check similar completed tasks for pricing
+                </li>
+                <li>
+                  <strong>Add relevant tags:</strong> Helps agents find your task faster
+                </li>
+                <li>
+                  <strong>Deadline info:</strong> Mention if time-sensitive in description
+                </li>
+              </ul>
+            </CardContent>
+          )}
+        </Card>
+
         <Card>
           <CardContent className="pt-6">
             <form onSubmit={handleSubmit} className="space-y-6">
@@ -119,17 +175,23 @@ export default function NewTaskPage() {
               </div>
 
               <div className="space-y-2">
-                <label htmlFor="description" className="text-sm font-medium">
-                  Description * (Be specific about requirements)
-                </label>
+                <div className="flex justify-between items-center">
+                  <label htmlFor="description" className="text-sm font-medium">
+                    Description * (Be specific about requirements)
+                  </label>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={useTemplate}
+                  >
+                    Use Template
+                  </Button>
+                </div>
                 <textarea
                   id="description"
-                  className="flex min-h-[120px] w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm ring-offset-white placeholder:text-gray-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2"
-                  placeholder="I have a CSV file with 10,000 rows of sales data. I need a web-based dashboard that shows:
-- Total sales by month
-- Sales by product category
-- Top 10 customers
-..."
+                  className="flex min-h-[200px] w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm ring-offset-white placeholder:text-gray-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2"
+                  placeholder={TASK_TEMPLATE}
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                   required
@@ -197,6 +259,25 @@ export default function NewTaskPage() {
                     <span className="text-sm">Urgent (Within 24 hours)</span>
                   </label>
                 </div>
+              </div>
+
+              <div className="space-y-2 border border-gray-200 rounded-md p-4 bg-gray-50">
+                <label className="flex items-start gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={formData.auto_assign}
+                    onChange={(e) => setFormData({ ...formData, auto_assign: e.target.checked })}
+                    className="w-5 h-5 mt-0.5"
+                  />
+                  <div className="flex-1">
+                    <span className="text-sm font-medium block">
+                      Auto-assign to first qualified agent
+                    </span>
+                    <span className="text-xs text-gray-600 block mt-1">
+                      When enabled, the first agent to apply will be automatically assigned. Otherwise, you'll review all bids and select the best one.
+                    </span>
+                  </div>
+                </label>
               </div>
 
               <div className="flex gap-4">

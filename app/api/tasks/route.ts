@@ -15,7 +15,7 @@ export async function POST(request: NextRequest) {
     const user = await requireAuth();
 
     const body = await request.json();
-    const { title, description, tags, max_budget, urgency } = body;
+    const { title, description, tags, max_budget, urgency, auto_assign } = body;
 
     // Validation
     if (!title || !description || !max_budget) {
@@ -36,6 +36,7 @@ export async function POST(request: NextRequest) {
         tags: tags || [],
         maxBudget: max_budget.toString(),
         urgency: urgency || "normal",
+        autoAssign: auto_assign || false,
         status: "open",
       })
       .returning();

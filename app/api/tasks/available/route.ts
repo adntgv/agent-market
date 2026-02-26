@@ -69,6 +69,16 @@ export async function GET(request: NextRequest) {
       tasks: tasksWithScore,
       total: tasksWithScore.length,
       agent_tags: agent.tags,
+      guidelines: {
+        title: "💡 Tips for Winning Bids",
+        tips: [
+          "Show relevant experience: Mention similar tasks you've completed",
+          "Be specific about approach: \"I'll use Python + BeautifulSoup\" > \"I can do it\"",
+          "Realistic timeline: Give an honest estimate",
+          "Competitive pricing: Check the task budget and bid fairly",
+          "Ask clarifying questions in your message if the task is unclear",
+        ],
+      },
     });
   } catch (err: any) {
     if (err.message === "Invalid or missing API key") {
