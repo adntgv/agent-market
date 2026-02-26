@@ -12,6 +12,8 @@ export default function DashboardPage() {
   const [wallet, setWallet] = useState<any>(null);
   const [tasks, setTasks] = useState<any[]>([]);
   const [agents, setAgents] = useState<any[]>([]);
+  const [earnings, setEarnings] = useState<any>(null);
+  const [disputes, setDisputes] = useState<any[]>([]);
 
   useEffect(() => {
     if (status === "unauthenticated") {
@@ -41,7 +43,19 @@ export default function DashboardPage() {
           .then((res) => res.json())
           .then((data) => setAgents(data.agents || []))
           .catch(console.error);
+
+        // Fetch earnings for sellers
+        fetch("/api/earnings")
+          .then((res) => res.json())
+          .then((data) => setEarnings(data))
+          .catch(console.error);
       }
+
+      // Fetch disputes
+      fetch("/api/disputes")
+        .then((res) => res.json())
+        .then((data) => setDisputes(data.disputes || []))
+        .catch(console.error);
     }
   }, [session]);
 
@@ -138,26 +152,44 @@ export default function DashboardPage() {
             </Link>
           </div>
 
-          {/* Active Card */}
+          {/* Active / Earnings Card */}
           <div className="bg-gradient-to-br from-slate-900 to-slate-800 border border-slate-700 rounded-2xl p-6 hover:border-slate-600 transition-all">
             <div className="flex items-start justify-between mb-4">
               <div className="w-10 h-10 bg-purple-500/10 rounded-xl flex items-center justify-center">
-                <svg className="w-5 h-5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                </svg>
+                {isBuyer ? (
+                  <svg className="w-5 h-5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                  </svg>
+                ) : (
+                  <svg className="w-5 h-5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                )}
               </div>
-              <span className="text-xs font-medium text-slate-500 uppercase">Active</span>
+              <span className="text-xs font-medium text-slate-500 uppercase">{isBuyer ? "Active" : "Earnings"}</span>
             </div>
             <div className="mb-1">
-              <span className="text-3xl font-bold text-white">0</span>
+              <span className="text-3xl font-bold text-white">
+                {isBuyer 
+                  ? tasks.filter(t => ['assigned', 'in_progress'].includes(t.status)).length
+                  : `$${earnings?.total_earned || '0.00'}`
+                }
+              </span>
             </div>
             <p className="text-sm text-slate-500 mb-4">
-              {isBuyer ? "Tasks in progress" : "Agents working"}
+              {isBuyer ? "Tasks in progress" : "Total earned"}
             </p>
-            <div className="h-8"></div>
+            {!isBuyer && (
+              <Link href="/earnings">
+                <Button className="w-full bg-slate-800 hover:bg-slate-700 text-white border-slate-700" size="sm">
+                  View Earnings
+                </Button>
+              </Link>
+            )}
+            {isBuyer && <div className="h-8"></div>}
           </div>
 
-          {/* Completed Card */}
+          {/* Completed / Disputes Card */}
           <div className="bg-gradient-to-br from-slate-900 to-slate-800 border border-slate-700 rounded-2xl p-6 hover:border-slate-600 transition-all">
             <div className="flex items-start justify-between mb-4">
               <div className="w-10 h-10 bg-green-500/10 rounded-xl flex items-center justify-center">
@@ -168,14 +200,61 @@ export default function DashboardPage() {
               <span className="text-xs font-medium text-slate-500 uppercase">Completed</span>
             </div>
             <div className="mb-1">
-              <span className="text-3xl font-bold text-white">0</span>
+              <span className="text-3xl font-bold text-white">
+                {isBuyer 
+                  ? tasks.filter(t => ['completed', 'approved'].includes(t.status)).length
+                  : agents.reduce((sum, a) => sum + (a.total_tasks_completed || 0), 0)
+                }
+              </span>
             </div>
             <p className="text-sm text-slate-500 mb-4">
               {isBuyer ? "Tasks finished" : "Tasks completed"}
+              {disputes.length > 0 && (
+                <span className="ml-2 text-orange-400">• {disputes.length} dispute{disputes.length > 1 ? 's' : ''}</span>
+              )}
             </p>
             <div className="h-8"></div>
           </div>
         </div>
+
+        {/* Seller Quick Links */}
+        {!isBuyer && agents.length > 0 && (
+          <div className="grid gap-4 md:grid-cols-2 mb-8">
+            <div className="bg-gradient-to-br from-slate-900/50 to-slate-800/50 border border-slate-700/50 rounded-xl p-4 hover:border-blue-500/30 transition-all cursor-pointer group">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-blue-500/10 rounded-lg flex items-center justify-center group-hover:bg-blue-500/20 transition-all">
+                  <svg className="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-sm font-semibold text-white group-hover:text-blue-400 transition-colors">Skills Management</h3>
+                  <p className="text-xs text-slate-500">Configure your agents' capabilities</p>
+                </div>
+                <svg className="w-5 h-5 text-slate-600 group-hover:text-slate-400 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+              </div>
+            </div>
+
+            <div className="bg-gradient-to-br from-slate-900/50 to-slate-800/50 border border-slate-700/50 rounded-xl p-4 hover:border-purple-500/30 transition-all cursor-pointer group">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-purple-500/10 rounded-lg flex items-center justify-center group-hover:bg-purple-500/20 transition-all">
+                  <svg className="w-5 h-5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                  </svg>
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-sm font-semibold text-white group-hover:text-purple-400 transition-colors">MCP Connections</h3>
+                  <p className="text-xs text-slate-500">Manage Model Context Protocol integrations</p>
+                </div>
+                <svg className="w-5 h-5 text-slate-600 group-hover:text-slate-400 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Main Content */}
         {isBuyer ? (
@@ -214,23 +293,50 @@ export default function DashboardPage() {
                 {tasks.map((task) => (
                   <div key={task.id} className="bg-gradient-to-br from-slate-900 to-slate-800 border border-slate-700 rounded-2xl p-6 hover:border-slate-600 transition-all">
                     <div className="flex justify-between items-start mb-3">
-                      <div>
+                      <div className="flex-1">
                         <h3 className="text-xl font-semibold text-white mb-2">{task.title}</h3>
-                        <div className="flex gap-3 text-sm text-slate-400">
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm text-slate-400 mb-2">
                           <span className="flex items-center gap-1">
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                             </svg>
-                            ${parseFloat(task.max_budget).toFixed(2)}
+                            Budget: ${parseFloat(task.max_budget).toFixed(2)}
                           </span>
                           <span className="flex items-center gap-1">
-                            <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                            {task.status}
+                            <div className={`w-2 h-2 rounded-full ${
+                              task.status === 'completed' || task.status === 'approved' ? 'bg-green-500' :
+                              task.status === 'in_progress' || task.status === 'assigned' ? 'bg-blue-500' :
+                              task.status === 'disputed' ? 'bg-orange-500' : 'bg-gray-500'
+                            }`}></div>
+                            {task.status.replace('_', ' ')}
                           </span>
+                          {task.assigned_agent && (
+                            <span className="flex items-center gap-1">
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                              </svg>
+                              Agent: {task.assigned_agent}
+                            </span>
+                          )}
+                          {task.time_spent && (
+                            <span className="flex items-center gap-1">
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                              </svg>
+                              Time: {task.time_spent}
+                            </span>
+                          )}
                         </div>
+                        {task.status === 'disputed' && (
+                          <div className="mt-2 flex items-center gap-2 text-xs">
+                            <span className="px-2 py-1 bg-orange-500/10 text-orange-400 rounded border border-orange-500/20">
+                              ⚠️ Dispute Active
+                            </span>
+                          </div>
+                        )}
                       </div>
                       <Link href={`/tasks/${task.id}`}>
-                        <Button variant="outline" className="border-slate-700 text-slate-300 hover:bg-slate-800 hover:text-white">
+                        <Button variant="outline" className="border-slate-700 text-slate-300 hover:bg-slate-800 hover:text-white ml-4">
                           View Details
                         </Button>
                       </Link>
@@ -276,19 +382,24 @@ export default function DashboardPage() {
                 {agents.map((agent) => (
                   <div key={agent.id} className="bg-gradient-to-br from-slate-900 to-slate-800 border border-slate-700 rounded-2xl p-6 hover:border-slate-600 transition-all">
                     <div className="flex justify-between items-start mb-3">
-                      <div>
-                        <h3 className="text-xl font-semibold text-white mb-2">{agent.name}</h3>
+                      <div className="flex-1">
+                        <div className="flex items-center gap-3 mb-2">
+                          <h3 className="text-xl font-semibold text-white">{agent.name}</h3>
+                          <div className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                            agent.status === 'active' ? 'bg-green-500/10 text-green-400 border border-green-500/20' :
+                            agent.status === 'suspended' ? 'bg-red-500/10 text-red-400 border border-red-500/20' :
+                            'bg-gray-500/10 text-gray-400 border border-gray-500/20'
+                          }`}>
+                            {agent.status}
+                          </div>
+                        </div>
                         <p className="text-sm text-slate-400 mb-3 line-clamp-2">{agent.description}</p>
-                        <div className="flex gap-3 text-sm text-slate-400">
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm text-slate-400">
                           <span className="flex items-center gap-1">
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                             </svg>
-                            ${parseFloat(agent.base_price || agent.basePrice || "0").toFixed(2)}
-                          </span>
-                          <span className="flex items-center gap-1">
-                            <div className={`w-2 h-2 rounded-full ${agent.status === 'active' ? 'bg-green-500' : 'bg-gray-500'}`}></div>
-                            {agent.status}
+                            ${parseFloat(agent.base_price || agent.basePrice || "0").toFixed(2)}/{agent.pricing_model || 'fixed'}
                           </span>
                           <span className="flex items-center gap-1">
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -296,11 +407,25 @@ export default function DashboardPage() {
                             </svg>
                             {agent.total_tasks_completed || agent.totalTasksCompleted || 0} tasks
                           </span>
+                          <span className="flex items-center gap-1">
+                            <svg className="w-4 h-4 text-yellow-400" fill="currentColor" viewBox="0 0 24 24">
+                              <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" />
+                            </svg>
+                            {parseFloat(agent.rating || "0").toFixed(1)}
+                          </span>
+                          {agent.mcp_endpoint && (
+                            <span className="flex items-center gap-1 text-purple-400">
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                              </svg>
+                              MCP Connected
+                            </span>
+                          )}
                         </div>
                       </div>
                       <Link href={`/agents/${agent.id}`}>
-                        <Button variant="outline" className="border-slate-700 text-slate-300 hover:bg-slate-800 hover:text-white">
-                          View Details
+                        <Button variant="outline" className="border-slate-700 text-slate-300 hover:bg-slate-800 hover:text-white ml-4">
+                          Manage
                         </Button>
                       </Link>
                     </div>
