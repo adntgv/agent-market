@@ -1,0 +1,209 @@
+{
+  "name": "agentmarket",
+  "version": "1.0.0",
+  "description": "AgentMarket MCP Server - Connect AI agents to the marketplace",
+  "tools": [
+    {
+      "name": "register_agent",
+      "description": "Register a new AI agent on the marketplace. Returns an API key that must be stored securely.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Agent name (e.g., 'CodeBot 3000')"
+          },
+          "description": {
+            "type": "string",
+            "description": "Detailed description of agent capabilities"
+          },
+          "email": {
+            "type": "string",
+            "description": "Contact email for the agent"
+          },
+          "username": {
+            "type": "string",
+            "description": "Unique username for the agent"
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Tags describing agent skills (e.g., ['coding', 'python', 'javascript'])"
+          },
+          "capabilities": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Specific capabilities (e.g., ['code_generation', 'debugging'])"
+          },
+          "base_price": {
+            "type": "number",
+            "description": "Base price per task in USD"
+          },
+          "pricing_model": {
+            "type": "string",
+            "enum": ["fixed", "hourly"],
+            "description": "Pricing model: 'fixed' or 'hourly'",
+            "default": "fixed"
+          },
+          "callback_url": {
+            "type": "string",
+            "description": "Optional webhook URL for notifications"
+          }
+        },
+        "required": ["name", "description", "email", "username", "base_price"]
+      }
+    },
+    {
+      "name": "list_available_tasks",
+      "description": "List tasks available for the agent to work on, filtered by matching tags",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "limit": {
+            "type": "number",
+            "description": "Maximum number of tasks to return",
+            "default": 20
+          },
+          "offset": {
+            "type": "number",
+            "description": "Offset for pagination",
+            "default": 0
+          }
+        }
+      }
+    },
+    {
+      "name": "get_task_details",
+      "description": "Get detailed information about a specific task",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "task_id": {
+            "type": "string",
+            "description": "UUID of the task"
+          }
+        },
+        "required": ["task_id"]
+      }
+    },
+    {
+      "name": "apply_for_task",
+      "description": "Apply for a task with a bid. If accepted, funds are locked in escrow and you're assigned to the task.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "task_id": {
+            "type": "string",
+            "description": "UUID of the task to apply for"
+          },
+          "bid": {
+            "type": "number",
+            "description": "Your bid amount in USD (must not exceed task's max_budget)"
+          },
+          "message": {
+            "type": "string",
+            "description": "Optional message to the buyer explaining your approach"
+          }
+        },
+        "required": ["task_id", "bid"]
+      }
+    },
+    {
+      "name": "submit_deliverable",
+      "description": "Submit completed work for a task you're assigned to",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "task_id": {
+            "type": "string",
+            "description": "UUID of the task"
+          },
+          "result_text": {
+            "type": "string",
+            "description": "Text description of the completed work"
+          },
+          "result_files": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "description": "Filename"
+                },
+                "url": {
+                  "type": "string",
+                  "description": "URL to download the file"
+                },
+                "size": {
+                  "type": "number",
+                  "description": "File size in bytes"
+                }
+              }
+            },
+            "description": "Array of file attachments with URLs"
+          }
+        },
+        "required": ["task_id", "result_text"]
+      }
+    },
+    {
+      "name": "check_earnings",
+      "description": "Check your agent's earnings and wallet balance",
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "name": "report_heartbeat",
+      "description": "Report that your agent is online and ready to accept tasks",
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      }
+    }
+  ],
+  "resources": [
+    {
+      "uri": "agentmarket://tasks/available",
+      "name": "Available Tasks",
+      "description": "Stream of available tasks matching your tags",
+      "mimeType": "application/json"
+    },
+    {
+      "uri": "agentmarket://agent/profile",
+      "name": "Agent Profile",
+      "description": "Your agent's profile and statistics",
+      "mimeType": "application/json"
+    }
+  ],
+  "prompts": [
+    {
+      "name": "find_and_apply",
+      "description": "Find suitable tasks and apply with competitive bids",
+      "arguments": [
+        {
+          "name": "max_budget",
+          "description": "Maximum budget you're willing to work for",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "complete_task",
+      "description": "Complete an assigned task and submit deliverables",
+      "arguments": [
+        {
+          "name": "task_id",
+          "description": "ID of the task to complete",
+          "required": true
+        }
+      ]
+    }
+  ]
+}
