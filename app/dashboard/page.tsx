@@ -11,6 +11,7 @@ export default function DashboardPage() {
   const router = useRouter();
   const [wallet, setWallet] = useState<any>(null);
   const [tasks, setTasks] = useState<any[]>([]);
+  const [agents, setAgents] = useState<any[]>([]);
 
   useEffect(() => {
     if (status === "unauthenticated") {
@@ -26,11 +27,21 @@ export default function DashboardPage() {
         .then((data) => setWallet(data.wallet))
         .catch(console.error);
 
-      // Fetch tasks
-      fetch("/api/tasks?my=true&limit=10")
-        .then((res) => res.json())
-        .then((data) => setTasks(data.tasks || []))
-        .catch(console.error);
+      // Fetch tasks for buyers
+      if (session.user.role === "buyer") {
+        fetch("/api/tasks?my=true&limit=10")
+          .then((res) => res.json())
+          .then((data) => setTasks(data.tasks || []))
+          .catch(console.error);
+      }
+
+      // Fetch agents for sellers
+      if (session.user.role === "seller") {
+        fetch("/api/agents/my")
+          .then((res) => res.json())
+          .then((data) => setAgents(data.agents || []))
+          .catch(console.error);
+      }
     }
   }, [session]);
 
@@ -243,22 +254,60 @@ export default function DashboardPage() {
               </Link>
             </div>
 
-            <div className="bg-gradient-to-br from-slate-900 to-slate-800 border border-slate-700 rounded-2xl p-12 text-center">
-              <div className="w-16 h-16 bg-slate-800 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                <svg className="w-8 h-8 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                </svg>
+            {agents.length === 0 ? (
+              <div className="bg-gradient-to-br from-slate-900 to-slate-800 border border-slate-700 rounded-2xl p-12 text-center">
+                <div className="w-16 h-16 bg-slate-800 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                  <svg className="w-8 h-8 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                  </svg>
+                </div>
+                <h3 className="text-xl font-semibold text-white mb-2">No agents yet</h3>
+                <p className="text-slate-400 mb-6 max-w-md mx-auto">
+                  Create your first AI agent and start earning by completing tasks.
+                </p>
+                <Link href="/agents/new">
+                  <Button className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white border-0">
+                    Create Your First Agent
+                  </Button>
+                </Link>
               </div>
-              <h3 className="text-xl font-semibold text-white mb-2">No agents yet</h3>
-              <p className="text-slate-400 mb-6 max-w-md mx-auto">
-                Create your first AI agent and start earning by completing tasks.
-              </p>
-              <Link href="/agents/new">
-                <Button className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white border-0">
-                  Create Your First Agent
-                </Button>
-              </Link>
-            </div>
+            ) : (
+              <div className="space-y-4">
+                {agents.map((agent) => (
+                  <div key={agent.id} className="bg-gradient-to-br from-slate-900 to-slate-800 border border-slate-700 rounded-2xl p-6 hover:border-slate-600 transition-all">
+                    <div className="flex justify-between items-start mb-3">
+                      <div>
+                        <h3 className="text-xl font-semibold text-white mb-2">{agent.name}</h3>
+                        <p className="text-sm text-slate-400 mb-3 line-clamp-2">{agent.description}</p>
+                        <div className="flex gap-3 text-sm text-slate-400">
+                          <span className="flex items-center gap-1">
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            ${parseFloat(agent.base_price || agent.basePrice || "0").toFixed(2)}
+                          </span>
+                          <span className="flex items-center gap-1">
+                            <div className={`w-2 h-2 rounded-full ${agent.status === 'active' ? 'bg-green-500' : 'bg-gray-500'}`}></div>
+                            {agent.status}
+                          </span>
+                          <span className="flex items-center gap-1">
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            {agent.total_tasks_completed || agent.totalTasksCompleted || 0} tasks
+                          </span>
+                        </div>
+                      </div>
+                      <Link href={`/agents/${agent.id}`}>
+                        <Button variant="outline" className="border-slate-700 text-slate-300 hover:bg-slate-800 hover:text-white">
+                          View Details
+                        </Button>
+                      </Link>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
       </div>
