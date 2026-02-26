@@ -17,6 +17,8 @@ export default function TaskDetailPage() {
   const [suggestions, setSuggestions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
+  const [showDisputeForm, setShowDisputeForm] = useState(false);
+  const [disputeComment, setDisputeComment] = useState("");
 
   useEffect(() => {
     if (status === "unauthenticated") {
@@ -98,6 +100,42 @@ export default function TaskDetailPage() {
       }
     } catch (error) {
       console.error("Error approving task:", error);
+      alert("An error occurred");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleDispute = async () => {
+    if (!disputeComment.trim()) {
+      alert("Please provide a reason for the dispute");
+      return;
+    }
+
+    if (!confirm("Create a dispute for this task?")) return;
+
+    setActionLoading(true);
+    try {
+      const res = await fetch(`/api/tasks/${taskId}/dispute`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          comment: disputeComment,
+          evidence: [], // Can add file uploads later
+        }),
+      });
+
+      if (res.ok) {
+        await fetchTask();
+        alert("Dispute created. The seller will be notified.");
+        setShowDisputeForm(false);
+        setDisputeComment("");
+      } else {
+        const data = await res.json();
+        alert(data.error || "Failed to create dispute");
+      }
+    } catch (error) {
+      console.error("Error creating dispute:", error);
       alert("An error occurred");
     } finally {
       setActionLoading(false);
@@ -198,6 +236,40 @@ export default function TaskDetailPage() {
           </Card>
         )}
 
+        {task.dispute && (
+          <Card className="mb-6 border-red-300">
+            <CardHeader>
+              <CardTitle className="text-red-700">⚠️ Dispute Active</CardTitle>
+              <CardDescription>This task is under dispute review</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <h3 className="font-bold text-gray-900 mb-2">Buyer's Complaint:</h3>
+                <p className="text-gray-700 whitespace-pre-wrap">{task.dispute.buyer_comment}</p>
+              </div>
+              {task.dispute.seller_comment && (
+                <div>
+                  <h3 className="font-bold text-gray-900 mb-2">Seller's Response:</h3>
+                  <p className="text-gray-700 whitespace-pre-wrap">
+                    {task.dispute.seller_comment}
+                  </p>
+                </div>
+              )}
+              {task.dispute.admin_comment && (
+                <div>
+                  <h3 className="font-bold text-gray-900 mb-2">Admin Decision:</h3>
+                  <p className="text-gray-700 whitespace-pre-wrap">
+                    {task.dispute.admin_comment}
+                  </p>
+                  <p className="text-sm text-gray-600 mt-2">
+                    Resolution: {task.dispute.resolution?.replace("_", " ")}
+                  </p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
         {task.result && (
           <Card className="mb-6">
             <CardHeader>
@@ -216,14 +288,55 @@ export default function TaskDetailPage() {
                   ))}
                 </div>
               )}
-              {canApprove && (
+              {canApprove && !showDisputeForm && (
                 <div className="mt-6 flex gap-4">
                   <Button onClick={handleApprove} disabled={actionLoading} size="lg">
                     {actionLoading ? "Processing..." : "✓ Approve & Release Payment"}
                   </Button>
-                  <Button variant="destructive" disabled={actionLoading} size="lg">
+                  <Button
+                    variant="destructive"
+                    disabled={actionLoading}
+                    size="lg"
+                    onClick={() => setShowDisputeForm(true)}
+                  >
                     ⚠ Dispute
                   </Button>
+                </div>
+              )}
+
+              {showDisputeForm && canApprove && (
+                <div className="mt-6 space-y-4 p-4 border border-red-200 bg-red-50 rounded-lg">
+                  <h3 className="font-bold text-red-900">Create Dispute</h3>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      What's wrong with the result?
+                    </label>
+                    <textarea
+                      value={disputeComment}
+                      onChange={(e) => setDisputeComment(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                      rows={4}
+                      placeholder="Explain why the result doesn't meet your requirements..."
+                    />
+                  </div>
+                  <div className="flex gap-4">
+                    <Button
+                      onClick={handleDispute}
+                      disabled={actionLoading}
+                      variant="destructive"
+                    >
+                      {actionLoading ? "Creating..." : "Submit Dispute"}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        setShowDisputeForm(false);
+                        setDisputeComment("");
+                      }}
+                    >
+                      Cancel
+                    </Button>
+                  </div>
                 </div>
               )}
             </CardContent>

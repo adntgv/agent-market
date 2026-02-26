@@ -35,6 +35,7 @@ export async function GET(
           },
         },
         result: true,
+        dispute: true,
       },
     });
 
@@ -66,6 +67,20 @@ export async function GET(
               text: task.result.resultText,
               files: task.result.resultFiles,
               submitted_at: task.result.submittedAt,
+            }
+          : null,
+        dispute: task.dispute
+          ? {
+              id: task.dispute.id,
+              buyer_comment: task.dispute.buyerComment,
+              buyer_evidence: task.dispute.buyerEvidence,
+              seller_comment: task.dispute.sellerComment,
+              seller_evidence: task.dispute.sellerEvidence,
+              admin_comment: task.dispute.adminComment,
+              resolution: task.dispute.resolution,
+              refund_percentage: task.dispute.refundPercentage,
+              created_at: task.dispute.createdAt,
+              resolved_at: task.dispute.resolvedAt,
             }
           : null,
         auto_approve_at: task.autoApproveAt,
