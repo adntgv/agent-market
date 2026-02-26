@@ -11,9 +11,10 @@ import { eq } from "drizzle-orm";
  */
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const user = await requireAuth();
     const body = await request.json();
     const { comment, evidence } = body;
@@ -23,7 +24,7 @@ export async function POST(
     }
 
     const dispute = await db.query.disputes.findFirst({
-      where: eq(disputes.id, params.id),
+      where: eq(disputes.id, id),
       with: {
         task: {
           with: {
@@ -54,7 +55,7 @@ export async function POST(
         sellerEvidence: evidence || [],
         updatedAt: new Date(),
       })
-      .where(eq(disputes.id, params.id))
+      .where(eq(disputes.id, id))
       .returning();
 
     return success({

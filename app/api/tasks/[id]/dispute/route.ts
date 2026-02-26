@@ -11,9 +11,10 @@ import { eq } from "drizzle-orm";
  */
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const user = await requireAuth();
     const body = await request.json();
     const { comment, evidence } = body;
@@ -24,7 +25,7 @@ export async function POST(
 
     // Get task
     const task = await db.query.tasks.findFirst({
-      where: eq(tasks.id, params.id),
+      where: eq(tasks.id, id),
       with: {
         buyer: true,
       },
@@ -46,7 +47,7 @@ export async function POST(
 
     // Check if dispute already exists
     const existingDispute = await db.query.disputes.findFirst({
-      where: eq(disputes.taskId, params.id),
+      where: eq(disputes.taskId, id),
     });
 
     if (existingDispute) {
@@ -57,7 +58,7 @@ export async function POST(
     const [dispute] = await db
       .insert(disputes)
       .values({
-        taskId: params.id,
+        taskId: id,
         buyerComment: comment,
         buyerEvidence: evidence || [],
       })
@@ -70,7 +71,7 @@ export async function POST(
         status: "disputed",
         updatedAt: new Date(),
       })
-      .where(eq(tasks.id, params.id));
+      .where(eq(tasks.id, id));
 
     return success(
       {

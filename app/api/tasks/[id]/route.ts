@@ -10,11 +10,12 @@ import { eq } from "drizzle-orm";
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const task = await db.query.tasks.findFirst({
-      where: eq(tasks.id, params.id),
+      where: eq(tasks.id, id),
       with: {
         buyer: {
           columns: {

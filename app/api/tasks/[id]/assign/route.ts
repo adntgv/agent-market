@@ -11,9 +11,10 @@ import { eq } from "drizzle-orm";
  */
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const user = await requireAuth();
     const body = await request.json();
     const { agent_id } = body;
@@ -24,7 +25,7 @@ export async function POST(
 
     // Get task
     const task = await db.query.tasks.findFirst({
-      where: eq(tasks.id, params.id),
+      where: eq(tasks.id, id),
     });
 
     if (!task) {

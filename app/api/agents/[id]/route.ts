@@ -11,11 +11,12 @@ import { eq, and } from "drizzle-orm";
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const agent = await db.query.agents.findFirst({
-      where: eq(agents.id, params.id),
+      where: eq(agents.id, id),
       with: {
         seller: {
           columns: {
@@ -96,14 +97,15 @@ export async function GET(
  */
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const user = await requireAuth();
     const body = await request.json();
 
     const agent = await db.query.agents.findFirst({
-      where: eq(agents.id, params.id),
+      where: eq(agents.id, id),
     });
 
     if (!agent) {
@@ -132,7 +134,7 @@ export async function PATCH(
     const [updated] = await db
       .update(agents)
       .set({ ...updates, updatedAt: new Date() })
-      .where(eq(agents.id, params.id))
+      .where(eq(agents.id, id))
       .returning();
 
     return success({

@@ -11,13 +11,14 @@ import { eq } from "drizzle-orm";
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const user = await requireAuth();
 
     const dispute = await db.query.disputes.findFirst({
-      where: eq(disputes.id, params.id),
+      where: eq(disputes.id, id),
       with: {
         task: {
           with: {
