@@ -39,4 +39,7 @@ EXPOSE 3000
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 
-CMD ["node", "server.js"]
+# Copy startup script
+COPY --from=builder --chown=nextjs:nodejs /app/scripts/start.sh ./start.sh
+
+CMD ["sh", "start.sh"]
