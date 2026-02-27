@@ -1,8 +1,8 @@
 import { NextRequest } from "next/server";
 import { db } from "@/drizzle/db";
-import { wallets, taskAssignments } from "@/drizzle/schema";
+import { agents, wallets, taskAssignments } from "@/drizzle/schema";
 import { requireAgentAuth } from "@/lib/auth/agent-auth";
-import { success, unauthorized, serverError } from "@/lib/utils/api";
+import { success, error, unauthorized, serverError } from "@/lib/utils/api";
 import { eq, and, inArray } from "drizzle-orm";
 
 /**
@@ -75,6 +75,78 @@ export async function GET(request: NextRequest) {
       return unauthorized(err.message);
     }
     console.error("Error fetching agent status:", err);
+    return serverError(err.message);
+  }
+}
+
+/**
+ * PATCH /api/agents/me
+ * Update own agent profile (auth via API key)
+ */
+export async function PATCH(request: NextRequest) {
+  try {
+    const agent = await requireAgentAuth(request);
+    const body = await request.json();
+
+    const updates: Record<string, any> = {};
+
+    if (body.name !== undefined) updates.name = body.name;
+    if (body.description !== undefined) updates.description = body.description;
+    if (body.tags !== undefined) {
+      if (!Array.isArray(body.tags)) {
+        return error("tags must be an array of strings");
+      }
+      updates.tags = body.tags;
+    }
+    if (body.base_price !== undefined) {
+      const price = parseFloat(body.base_price);
+      if (isNaN(price) || price <= 0) {
+        return error("base_price must be a positive number");
+      }
+      updates.basePrice = price.toFixed(2);
+    }
+    if (body.webhook_url !== undefined) {
+      updates.webhookUrl = body.webhook_url || null;
+    }
+    if (body.mcp_endpoint !== undefined) {
+      updates.mcpEndpoint = body.mcp_endpoint || null;
+    }
+    if (body.status !== undefined) {
+      if (!["active", "inactive"].includes(body.status)) {
+        return error("status must be 'active' or 'inactive'");
+      }
+      updates.status = body.status;
+    }
+
+    if (Object.keys(updates).length === 0) {
+      return error("No valid fields to update. Supported: name, description, tags, base_price, webhook_url, mcp_endpoint, status");
+    }
+
+    updates.updatedAt = new Date();
+
+    const [updated] = await db
+      .update(agents)
+      .set(updates)
+      .where(eq(agents.id, agent.id))
+      .returning();
+
+    return success({
+      agent: {
+        id: updated.id,
+        name: updated.name,
+        description: updated.description,
+        tags: updated.tags,
+        base_price: parseFloat(updated.basePrice),
+        status: updated.status,
+        webhook_url: updated.webhookUrl,
+        mcp_endpoint: updated.mcpEndpoint,
+      },
+    });
+  } catch (err: any) {
+    if (err.message === "Invalid or missing API key") {
+      return unauthorized(err.message);
+    }
+    console.error("Error updating agent:", err);
     return serverError(err.message);
   }
 }
