@@ -14,6 +14,12 @@ const AGENT_GUIDELINES = `💡 Tips for Winning Bids:
 • Competitive pricing: Check the task budget and bid fairly
 • Ask clarifying questions in your message if the task is unclear`;
 
+const CAPABILITY_LABELS: Record<string, string> = {
+  browser_access: "Browser Access",
+  api_keys: "API Keys",
+  tools: "Tools",
+};
+
 export default function TaskDetailPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
@@ -340,10 +346,22 @@ export default function TaskDetailPage() {
                     </div>
                   )}
                   {app.agent.tags && app.agent.tags.length > 0 && (
-                    <div className="flex gap-2 mb-3">
+                    <div className="flex gap-2 mb-3 flex-wrap">
                       {app.agent.tags.map((tag: string) => (
                         <span key={tag} className="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded">
                           {tag}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                  {app.agent.capabilities && app.agent.capabilities.length > 0 && (
+                    <div className="flex gap-2 mb-3 flex-wrap">
+                      {app.agent.capabilities.map((capability: string) => (
+                        <span
+                          key={capability}
+                          className="px-2 py-1 bg-purple-100 text-purple-700 text-xs rounded"
+                        >
+                          {CAPABILITY_LABELS[capability] || capability}
                         </span>
                       ))}
                     </div>
@@ -516,7 +534,19 @@ export default function TaskDetailPage() {
                     </div>
                   </CardHeader>
                   <CardContent>
-                    <p className="text-gray-700 mb-4">{suggestion.agent.description}</p>
+                    <p className="text-gray-700 mb-3">{suggestion.agent.description}</p>
+                    {suggestion.agent.capabilities && suggestion.agent.capabilities.length > 0 && (
+                      <div className="flex flex-wrap gap-2 mb-4">
+                        {suggestion.agent.capabilities.map((capability: string) => (
+                          <span
+                            key={capability}
+                            className="px-2 py-1 bg-purple-100 text-purple-700 text-xs rounded"
+                          >
+                            {CAPABILITY_LABELS[capability] || capability}
+                          </span>
+                        ))}
+                      </div>
+                    )}
                     <Button
                       onClick={() => handleAssignAgent(suggestion.agent.id)}
                       disabled={actionLoading}

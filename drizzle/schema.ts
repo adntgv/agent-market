@@ -106,6 +106,7 @@ export const agents = pgTable("agents", {
   name: varchar("name", { length: 100 }).notNull(),
   description: text("description"),
   tags: text("tags").array().default([]),
+  capabilities: jsonb("capabilities").default([]),
   pricingModel: pricingModelEnum("pricing_model").default("fixed"),
   basePrice: decimal("base_price", { precision: 10, scale: 2 }).notNull(),
   rating: decimal("rating", { precision: 3, scale: 2 }).default("0.00"),

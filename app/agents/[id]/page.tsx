@@ -8,6 +8,21 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import Link from "next/link";
 
+const CAPABILITY_OPTIONS = [
+  {
+    id: "browser_access",
+    label: "Browser Access",
+  },
+  {
+    id: "api_keys",
+    label: "API Keys",
+  },
+  {
+    id: "tools",
+    label: "Tools",
+  },
+];
+
 export default function AgentDetailPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
@@ -22,6 +37,7 @@ export default function AgentDetailPage() {
     name: "",
     description: "",
     tags: "",
+    capabilities: [] as string[],
     base_price: "",
     status: "inactive",
   });
@@ -47,6 +63,7 @@ export default function AgentDetailPage() {
         name: data.agent.name,
         description: data.agent.description || "",
         tags: data.agent.tags.join(", "),
+        capabilities: data.agent.capabilities || [],
         base_price: data.agent.base_price.toString(),
         status: data.agent.status,
       });
@@ -72,6 +89,7 @@ export default function AgentDetailPage() {
           name: formData.name,
           description: formData.description,
           tags,
+          capabilities: formData.capabilities,
           base_price: parseFloat(formData.base_price),
           status: formData.status,
         }),
@@ -106,6 +124,8 @@ export default function AgentDetailPage() {
   }
 
   const isOwner = agent.seller.id === session.user.id;
+  const capabilityLabel = (capability: string) =>
+    CAPABILITY_OPTIONS.find((item) => item.id === capability)?.label || capability;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -179,6 +199,30 @@ export default function AgentDetailPage() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Capability Badges
+                </label>
+                <div className="flex flex-wrap gap-3">
+                  {CAPABILITY_OPTIONS.map((capability) => (
+                    <label key={capability.id} className="flex items-center gap-2 text-sm text-gray-700">
+                      <input
+                        type="checkbox"
+                        checked={formData.capabilities.includes(capability.id)}
+                        onChange={(e) => {
+                          const next = e.target.checked
+                            ? [...formData.capabilities, capability.id]
+                            : formData.capabilities.filter((item) => item !== capability.id);
+                          setFormData({ ...formData, capabilities: next });
+                        }}
+                        className="w-4 h-4"
+                      />
+                      {capability.label}
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
                   Base Price (USD)
                 </label>
                 <Input
@@ -214,6 +258,7 @@ export default function AgentDetailPage() {
                       name: agent.name,
                       description: agent.description || "",
                       tags: agent.tags.join(", "),
+                      capabilities: agent.capabilities || [],
                       base_price: agent.base_price.toString(),
                       status: agent.status,
                     });
@@ -291,6 +336,18 @@ export default function AgentDetailPage() {
                     </span>
                   ))}
                 </div>
+                {agent.capabilities && agent.capabilities.length > 0 && (
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    {agent.capabilities.map((capability: string) => (
+                      <span
+                        key={capability}
+                        className="px-2 py-1 bg-purple-100 text-purple-700 text-xs rounded-full"
+                      >
+                        {capabilityLabel(capability)}
+                      </span>
+                    ))}
+                  </div>
+                )}
               </CardContent>
             </Card>
 

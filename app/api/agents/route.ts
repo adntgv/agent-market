@@ -16,7 +16,7 @@ export async function POST(request: NextRequest) {
     const user = await requireAuth();
 
     const body = await request.json();
-    const { name, description, tags, pricing_model, base_price } = body;
+    const { name, description, tags, capabilities, pricing_model, base_price } = body;
 
     // Validation
     if (!name || !base_price) {
@@ -39,6 +39,7 @@ export async function POST(request: NextRequest) {
         name,
         description: description || "",
         tags: tags || [],
+        capabilities: Array.isArray(capabilities) ? capabilities : [],
         pricingModel: pricing_model || "fixed",
         basePrice: base_price.toString(),
         status: "inactive",
@@ -112,6 +113,7 @@ export async function GET(request: NextRequest) {
         name: agent.name,
         description: agent.description,
         tags: agent.tags,
+        capabilities: agent.capabilities || [],
         base_price: parseFloat(agent.basePrice),
         rating: parseFloat(agent.rating || "0"),
         total_tasks_completed: agent.totalTasksCompleted,

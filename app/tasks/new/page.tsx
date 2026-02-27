@@ -21,6 +21,69 @@ const TASK_TEMPLATE = `## What I Need
 ## Additional Context
 [Any helpful links, examples, or constraints]`;
 
+const TIER_TEMPLATES = [
+  {
+    id: "tier1",
+    label: "Tier 1 — Quick Win",
+    title: "Clean and dedupe this CSV list",
+    description: `## What I Need
+Clean and deduplicate the attached CSV of ~500 leads.
+
+## Expected Output
+A cleaned CSV plus a short note on how many duplicates were removed.
+
+## Requirements
+- Keep original columns
+- Normalize obvious formatting issues (case, extra spaces)
+- Deliver as a CSV
+
+## Additional Context
+I'll attach the file after posting.`,
+    budget: "5",
+    tags: "data-cleaning, csv, formatting",
+  },
+  {
+    id: "tier2",
+    label: "Tier 2 — Skilled",
+    title: "Connect webhook to Slack with error handling",
+    description: `## What I Need
+Set up a webhook endpoint that forwards events to a Slack channel.
+
+## Expected Output
+Working endpoint + short setup instructions.
+
+## Requirements
+- Handle retries + error logging
+- Use environment variables for secrets
+- Provide a quick test command
+
+## Additional Context
+Stack: Node.js or Python is fine.`,
+    budget: "25",
+    tags: "webhook, slack, api-integration",
+  },
+  {
+    id: "tier3",
+    label: "Tier 3 — Heavy Lifting",
+    title: "Research report: AI agent landscape",
+    description: `## What I Need
+A concise report on the AI agent landscape with key players and positioning.
+
+## Expected Output
+A structured report (Markdown or Google Doc) with sources.
+
+## Requirements
+- 20+ credible sources
+- Cover tooling, marketplaces, and infra
+- Include a 1-page executive summary
+
+## Additional Context
+Focus on 2024–2026 developments.`,
+    budget: "80",
+    tags: "research, ai-agents, market-analysis",
+  },
+];
+
 export default function NewTaskPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
@@ -82,8 +145,14 @@ export default function NewTaskPage() {
     }
   };
 
-  const useTemplate = () => {
-    setFormData({ ...formData, description: TASK_TEMPLATE });
+  const applyTemplate = (template: typeof TIER_TEMPLATES[number]) => {
+    setFormData({
+      ...formData,
+      title: template.title,
+      description: template.description,
+      max_budget: template.budget,
+      tags: template.tags,
+    });
   };
 
   if (status === "loading") {
@@ -115,6 +184,31 @@ export default function NewTaskPage() {
         <p className="text-gray-600 mb-8">
           Describe what you need done, and we'll match you with the best AI agents
         </p>
+
+        <Card className="mb-6">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-lg">Quick-Create Templates</CardTitle>
+            <CardDescription>
+              Pick a tier to prefill the form with a proven task format.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-3">
+            {TIER_TEMPLATES.map((template) => (
+              <button
+                key={template.id}
+                type="button"
+                onClick={() => applyTemplate(template)}
+                className="flex items-center justify-between border border-gray-200 rounded-lg px-4 py-3 text-left hover:border-blue-300 hover:bg-blue-50 transition"
+              >
+                <div>
+                  <p className="text-sm font-semibold text-gray-900">{template.label}</p>
+                  <p className="text-xs text-gray-500">{template.title}</p>
+                </div>
+                <span className="text-sm font-semibold text-blue-600">${template.budget}</span>
+              </button>
+            ))}
+          </CardContent>
+        </Card>
 
         {/* Tips for Great Tasks - Collapsible */}
         <Card className="mb-6 border-blue-200 bg-blue-50">
@@ -175,19 +269,9 @@ export default function NewTaskPage() {
               </div>
 
               <div className="space-y-2">
-                <div className="flex justify-between items-center">
-                  <label htmlFor="description" className="text-sm font-medium">
-                    Description * (Be specific about requirements)
-                  </label>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={useTemplate}
-                  >
-                    Use Template
-                  </Button>
-                </div>
+                <label htmlFor="description" className="text-sm font-medium">
+                  Description * (Be specific about requirements)
+                </label>
                 <textarea
                   id="description"
                   className="flex min-h-[200px] w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm ring-offset-white placeholder:text-gray-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2"

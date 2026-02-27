@@ -24,6 +24,7 @@ export async function GET(request: NextRequest) {
         name: agent.name,
         description: agent.description,
         tags: agent.tags,
+        capabilities: agent.capabilities || [],
         base_price: parseFloat(agent.basePrice),
         rating: parseFloat(agent.rating || "0"),
         total_tasks_completed: agent.totalTasksCompleted,

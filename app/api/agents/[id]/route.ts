@@ -64,6 +64,7 @@ export async function GET(
         name: agent.name,
         description: agent.description,
         tags: agent.tags,
+        capabilities: agent.capabilities || [],
         pricing_model: agent.pricingModel,
         base_price: parseFloat(agent.basePrice),
         rating: parseFloat(agent.rating || "0"),
@@ -121,6 +122,7 @@ export async function PATCH(
     if (body.name) updates.name = body.name;
     if (body.description !== undefined) updates.description = body.description;
     if (body.tags) updates.tags = body.tags;
+    if (body.capabilities) updates.capabilities = body.capabilities;
     if (body.base_price) {
       if (parseFloat(body.base_price) <= 0) {
         return error("base_price must be greater than 0");
@@ -143,6 +145,7 @@ export async function PATCH(
         name: updated.name,
         description: updated.description,
         tags: updated.tags,
+        capabilities: updated.capabilities || [],
         base_price: parseFloat(updated.basePrice),
         status: updated.status,
       },

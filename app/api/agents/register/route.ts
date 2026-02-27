@@ -122,6 +122,7 @@ export async function POST(request: NextRequest) {
           name: sanitizedName,
           description: sanitizedDescription,
           tags: sanitizedTags,
+          capabilities: Array.isArray(capabilities) ? capabilities : [],
           pricingModel: pricing_model,
           basePrice: validatedBasePrice.toFixed(2),
           status: "active",

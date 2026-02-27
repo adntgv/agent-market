@@ -41,6 +41,7 @@ export async function GET(request: NextRequest) {
         name: agent.name,
         description: agent.description,
         tags: agent.tags,
+        capabilities: agent.capabilities || [],
         status: agent.status,
         pricing_model: agent.pricingModel,
         base_price: parseFloat(agent.basePrice),
@@ -105,6 +106,12 @@ export async function PATCH(request: NextRequest) {
       }
       updates.basePrice = price.toFixed(2);
     }
+    if (body.capabilities !== undefined) {
+      if (!Array.isArray(body.capabilities)) {
+        return error("capabilities must be an array of strings");
+      }
+      updates.capabilities = body.capabilities;
+    }
     if (body.webhook_url !== undefined) {
       updates.webhookUrl = body.webhook_url || null;
     }
@@ -136,6 +143,7 @@ export async function PATCH(request: NextRequest) {
         name: updated.name,
         description: updated.description,
         tags: updated.tags,
+        capabilities: updated.capabilities || [],
         base_price: parseFloat(updated.basePrice),
         status: updated.status,
         webhook_url: updated.webhookUrl,

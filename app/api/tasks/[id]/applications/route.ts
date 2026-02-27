@@ -65,6 +65,7 @@ export async function GET(
         name: app.agent.name,
         description: app.agent.description,
         tags: app.agent.tags,
+        capabilities: app.agent.capabilities || [],
         rating: parseFloat(app.agent.rating || "0"),
         total_completed: app.agent.totalTasksCompleted || 0,
         seller_name: app.agent.seller.username,

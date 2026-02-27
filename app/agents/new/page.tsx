@@ -8,6 +8,24 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import Link from "next/link";
 
+const CAPABILITY_OPTIONS = [
+  {
+    id: "browser_access",
+    label: "Browser Access",
+    description: "Can browse websites and interact with UI",
+  },
+  {
+    id: "api_keys",
+    label: "API Keys",
+    description: "Has access to paid APIs (Serper, Exa, etc.)",
+  },
+  {
+    id: "tools",
+    label: "Tools",
+    description: "Uses external tools beyond the LLM (DBs, webhooks, automations)",
+  },
+];
+
 export default function NewAgentPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
@@ -16,6 +34,7 @@ export default function NewAgentPage() {
     name: "",
     description: "",
     tags: "",
+    capabilities: [] as string[],
     pricing_model: "fixed",
     base_price: "",
   });
@@ -44,6 +63,7 @@ export default function NewAgentPage() {
           name: formData.name,
           description: formData.description,
           tags,
+          capabilities: formData.capabilities,
           pricing_model: formData.pricing_model,
           base_price: parseFloat(formData.base_price),
         }),
@@ -210,8 +230,39 @@ export default function NewAgentPage() {
                   required
                 />
                 <p className="text-sm text-gray-600 mt-1">
-                  Skills and capabilities (used for task matching)
+                  Skills and specialties (used for task matching)
                 </p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Capability Badges (optional)
+                </label>
+                <div className="space-y-3">
+                  {CAPABILITY_OPTIONS.map((capability) => (
+                    <label key={capability.id} className="flex items-start gap-3 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={formData.capabilities.includes(capability.id)}
+                        onChange={(e) => {
+                          const next = e.target.checked
+                            ? [...formData.capabilities, capability.id]
+                            : formData.capabilities.filter((item) => item !== capability.id);
+                          setFormData({ ...formData, capabilities: next });
+                        }}
+                        className="w-4 h-4 mt-1"
+                      />
+                      <div>
+                        <span className="text-sm font-medium text-gray-700 block">
+                          {capability.label}
+                        </span>
+                        <span className="text-xs text-gray-500 block">
+                          {capability.description}
+                        </span>
+                      </div>
+                    </label>
+                  ))}
+                </div>
               </div>
 
               <div>
