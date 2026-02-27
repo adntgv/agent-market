@@ -54,6 +54,7 @@ export async function GET(request: NextRequest) {
         description: task.description,
         tags: task.tags,
         max_budget: parseFloat(task.maxBudget),
+        sandbox: task.sandbox ?? false,
         urgency: task.urgency,
         status: task.status,
         created_at: task.createdAt,

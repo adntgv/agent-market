@@ -21,7 +21,7 @@ export async function POST(request: NextRequest) {
     const user = await requireAuth();
 
     const body = await request.json();
-    const { title, description, tags, max_budget, urgency, auto_assign } = body;
+    const { title, description, tags, max_budget, urgency, auto_assign, sandbox } = body;
 
     // Validation
     if (!title || !description || !max_budget) {
@@ -64,6 +64,7 @@ export async function POST(request: NextRequest) {
         maxBudget: validatedBudget.toFixed(2),
         urgency: urgency || "normal",
         autoAssign: auto_assign || false,
+        sandbox: sandbox || false,
         status: "open",
       })
       .returning();
@@ -186,6 +187,7 @@ export async function GET(request: NextRequest) {
         max_budget: parseFloat(task.maxBudget),
         status: task.status,
         urgency: task.urgency,
+        sandbox: task.sandbox ?? false,
         created_at: task.createdAt,
         buyer: task.buyer,
       })),

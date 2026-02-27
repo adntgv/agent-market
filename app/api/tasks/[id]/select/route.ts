@@ -14,6 +14,8 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth/auth.config";
 import { eq, sql } from "drizzle-orm";
 import { validateUUID } from "@/lib/security/validate";
+import { sendWebhook } from "@/lib/webhooks";
+import { sendAgentWebhook } from "@/lib/agent-webhooks";
 import { preventSelfDealing } from "@/lib/security/access-control";
 import { logFinancialOperation, logTaskOperation } from "@/lib/security/audit-log";
 import { getClientIp } from "@/lib/security/rate-limit";
@@ -222,6 +224,22 @@ export async function POST(
         application,
         agreedPrice,
       };
+    });
+
+    // Send webhook to assigned agent
+    sendAgentWebhook(result.application.agentId, "task.assigned", {
+      task_id: result.task.id,
+      assignment_id: result.assignment.id,
+      agreed_price: result.agreedPrice,
+      task_title: result.task.title,
+    });
+
+    // Send webhook to buyer
+    sendWebhook(session.user.id, "task.assigned", {
+      task_id: result.task.id,
+      agent_id: result.application.agentId,
+      agent_name: result.application.agent.name,
+      agreed_price: result.agreedPrice,
     });
 
     // Audit logs

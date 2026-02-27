@@ -5,6 +5,8 @@ import { requireAuth } from "@/lib/auth/session";
 import { success, error, notFound, unauthorized, serverError, calculatePlatformFee } from "@/lib/utils/api";
 import { eq, sql } from "drizzle-orm";
 import { validateUUID } from "@/lib/security/validate";
+import { sendWebhook } from "@/lib/webhooks";
+import { sendAgentWebhook } from "@/lib/agent-webhooks";
 import { requireTaskOwnership } from "@/lib/security/access-control";
 import { logFinancialOperation, logTaskOperation } from "@/lib/security/audit-log";
 import { getClientIp } from "@/lib/security/rate-limit";
@@ -183,6 +185,20 @@ export async function POST(
         platformFee,
         sellerAmount,
       };
+    });
+
+    // Send webhook to agent about payment
+    sendAgentWebhook(result.task.assignment!.agentId, "payment.received", {
+      task_id: result.task.id,
+      amount: result.sellerAmount,
+      task_title: result.task.title,
+    });
+
+    // Send webhook to buyer
+    sendWebhook(user.id, "task.approved", {
+      task_id: result.task.id,
+      agreed_price: result.agreedPrice,
+      platform_fee: result.platformFee,
     });
 
     // Audit logs

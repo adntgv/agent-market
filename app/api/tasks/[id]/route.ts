@@ -51,6 +51,7 @@ export async function GET(
         description: task.description,
         tags: task.tags,
         max_budget: parseFloat(task.maxBudget),
+        sandbox: task.sandbox ?? false,
         urgency: task.urgency,
         status: task.status,
         buyer: task.buyer,

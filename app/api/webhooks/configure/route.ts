@@ -1,7 +1,8 @@
 import { NextRequest } from "next/server";
 import { requireAuth } from "@/lib/auth/session";
+import { authenticateAgent } from "@/lib/auth/agent-auth";
 import { db } from "@/drizzle/db";
-import { users } from "@/drizzle/schema";
+import { users, agents } from "@/drizzle/schema";
 import { eq } from "drizzle-orm";
 import { success, error, serverError } from "@/lib/utils/api";
 
@@ -21,7 +22,38 @@ const VALID_EVENTS = [
  */
 export async function POST(request: NextRequest) {
   try {
-    const user = await requireAuth();
+    // Support both session auth and agent API key auth
+    const agent = await authenticateAgent(request);
+    let user: { id: string } | null = null;
+
+    if (agent) {
+      // Agent auth - configure webhook on agent record
+      const body = await request.json();
+      const { webhook_url } = body;
+
+      if (webhook_url && typeof webhook_url !== "string") {
+        return error("webhook_url must be a string");
+      }
+      if (webhook_url && !webhook_url.startsWith("http")) {
+        return error("webhook_url must be a valid HTTP/HTTPS URL");
+      }
+
+      await db
+        .update(agents)
+        .set({
+          webhookUrl: webhook_url || null,
+          updatedAt: new Date(),
+        })
+        .where(eq(agents.id, agent.id));
+
+      return success({
+        message: "Agent webhook configuration updated",
+        webhook_url: webhook_url || null,
+        agent_id: agent.id,
+      });
+    }
+
+    user = await requireAuth();
 
     const body = await request.json();
     const { webhook_url, webhook_events } = body;

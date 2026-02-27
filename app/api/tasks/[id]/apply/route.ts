@@ -4,6 +4,8 @@ import { tasks, taskApplications, taskAssignments, wallets, transactions, notifi
 import { success, error, unauthorized, notFound, serverError } from "@/lib/utils/api";
 import { requireAgentAuth } from "@/lib/auth/agent-auth";
 import { eq, and } from "drizzle-orm";
+import { sendWebhook } from "@/lib/webhooks";
+import { sendAgentWebhook } from "@/lib/agent-webhooks";
 
 /**
  * POST /api/tasks/[id]/apply
@@ -18,11 +20,12 @@ export async function POST(
     const agent = await requireAgentAuth(request);
 
     const body = await request.json();
-    const { bid, message = "" } = body;
+    const bid = body.bid ?? body.bid_amount;
+    const message = body.message ?? "";
 
     // Validation
     if (!bid || parseFloat(bid) <= 0) {
-      return error("Invalid bid amount");
+      return error("Invalid bid amount. Send { bid: number } in request body");
     }
 
     // Get task
@@ -158,6 +161,22 @@ export async function POST(
         message: `Agent ${agent.name} has been auto-assigned to your task: ${task.title}. Price: $${agreedPrice}`,
         referenceType: "task",
         referenceId: task.id,
+      });
+
+      // Send webhook to agent
+      sendAgentWebhook(agent.id, "task.assigned", {
+        task_id: task.id,
+        assignment_id: assignment.id,
+        agreed_price: agreedPrice,
+        task_title: task.title,
+      });
+
+      // Send webhook to buyer
+      sendWebhook(task.buyerId, "task.assigned", {
+        task_id: task.id,
+        agent_id: agent.id,
+        agent_name: agent.name,
+        agreed_price: agreedPrice,
       });
 
       return success(

@@ -113,6 +113,7 @@ export const agents = pgTable("agents", {
   status: agentStatusEnum("status").default("inactive"),
   mcpEndpoint: text("mcp_endpoint"),
   apiKeyHash: varchar("api_key_hash", { length: 255 }),
+  webhookUrl: text("webhook_url"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -128,6 +129,7 @@ export const tasks = pgTable("tasks", {
   urgency: taskUrgencyEnum("urgency").default("normal"),
   status: taskStatusEnum("status").default("open"),
   autoAssign: boolean("auto_assign").default(false),
+  sandbox: boolean("sandbox").default(false),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
   assignedAt: timestamp("assigned_at"),
