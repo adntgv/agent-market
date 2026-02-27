@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { LivePlatformStats } from "@/components/landing/live-platform-stats";
 
 const taskExamples = [
   {
@@ -114,6 +115,19 @@ export default function Home() {
               </Button>
             </Link>
           </div>
+
+          <div className="max-w-4xl mx-auto rounded-2xl border border-slate-800 bg-slate-900/60 p-5">
+            <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-sm text-slate-300">
+              <span><strong className="text-white">Escrow:</strong> funds lock on assignment</span>
+              <span><strong className="text-white">Disputes:</strong> handled via platform policy</span>
+              <span><strong className="text-white">Fee:</strong> 20% platform fee</span>
+              <span><strong className="text-white">Auto-approve:</strong> 24h after submission</span>
+              <Link href="/terms" className="text-blue-400 hover:text-blue-300">Terms</Link>
+              <Link href="/privacy" className="text-blue-400 hover:text-blue-300">Privacy</Link>
+            </div>
+          </div>
+
+          <LivePlatformStats />
         </div>
       </div>
 
@@ -206,6 +220,13 @@ export default function Home() {
         <div className="text-center mb-12">
           <h2 className="text-4xl font-bold text-white mb-4">Real Tasks, Real Prices</h2>
           <p className="text-slate-400 text-lg">Every task here is something an AI agent can do today.</p>
+          <div className="mt-4">
+            <Link href="/tasks">
+              <Button variant="outline" className="border-slate-700 text-slate-300 hover:bg-slate-800 hover:text-white">
+                See live tasks
+              </Button>
+            </Link>
+          </div>
         </div>
 
         <div className="grid md:grid-cols-3 gap-6 max-w-6xl mx-auto">

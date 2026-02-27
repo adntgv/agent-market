@@ -28,6 +28,12 @@ const STATUS_COLORS: Record<string, string> = {
   cancelled: "bg-gray-500/20 text-gray-400",
 };
 
+const EMPTY_STATE_EXAMPLES = [
+  "Summarize this 20-page competitor report into a 1-page brief",
+  "Build a responsive landing page from my Figma file",
+  "Research 15 AI startups hiring GTM roles this month",
+];
+
 export default function BrowseTasksPage() {
   const { data: session } = useSession();
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -104,50 +110,91 @@ export default function BrowseTasksPage() {
         {loading ? (
           <div className="text-center text-gray-400 py-20">Loading tasks...</div>
         ) : tasks.length === 0 ? (
-          <div className="text-center py-20">
-            <p className="text-gray-400 text-lg">No tasks found</p>
-            <Link href="/tasks/new" className="text-blue-400 hover:underline mt-2 inline-block">Post the first task →</Link>
+          <div className="max-w-3xl mx-auto py-14">
+            <Card className="bg-white/5 border-white/10">
+              <CardContent className="p-8 text-center">
+                <h2 className="text-2xl font-semibold text-white">No open tasks yet</h2>
+                <p className="text-gray-400 mt-2">Kick things off with a clear scope and budget. Here are examples buyers post:</p>
+                <ul className="mt-6 space-y-2 text-left max-w-xl mx-auto">
+                  {EMPTY_STATE_EXAMPLES.map((item) => (
+                    <li key={item} className="flex gap-2 text-sm text-slate-300">
+                      <span className="text-blue-400 shrink-0">→</span>
+                      <span>{item}</span>
+                    </li>
+                  ))}
+                </ul>
+                <Link href="/tasks/new">
+                  <Button className="mt-7 bg-gradient-to-r from-blue-500 to-purple-600 text-white">
+                    Post the first task
+                  </Button>
+                </Link>
+              </CardContent>
+            </Card>
           </div>
         ) : (
-          <div className="grid gap-4">
-            {tasks.map((task) => (
-              <Link key={task.id} href={`/tasks/${task.id}`}>
-                <Card className="bg-white/5 border-white/10 hover:border-white/20 transition-all cursor-pointer">
-                  <CardContent className="p-6">
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-3 mb-2">
-                          <h3 className="text-lg font-semibold text-white">{task.title}</h3>
-                          {task.urgency === "urgent" && (
-                            <span className="px-2 py-0.5 rounded-full text-xs bg-red-500/20 text-red-400 border border-red-500/30">🔥 Urgent</span>
+          <div className="space-y-4">
+            {filter === "all" && openTasks.length === 0 && (
+              <Card className="bg-blue-500/5 border-blue-500/20">
+                <CardContent className="p-6">
+                  <h2 className="text-xl font-semibold text-white">No open tasks yet</h2>
+                  <p className="text-gray-300 mt-1">Be the first to post. Examples:</p>
+                  <ul className="mt-4 space-y-2">
+                    {EMPTY_STATE_EXAMPLES.map((item) => (
+                      <li key={item} className="flex gap-2 text-sm text-slate-300">
+                        <span className="text-blue-400 shrink-0">→</span>
+                        <span>{item}</span>
+                      </li>
+                    ))}
+                  </ul>
+                  <Link href="/tasks/new">
+                    <Button className="mt-5 bg-gradient-to-r from-blue-500 to-purple-600 text-white">
+                      Post the first task
+                    </Button>
+                  </Link>
+                </CardContent>
+              </Card>
+            )}
+
+            <div className="grid gap-4">
+              {tasks.map((task) => (
+                <Link key={task.id} href={`/tasks/${task.id}`}>
+                  <Card className="bg-white/5 border-white/10 hover:border-white/20 transition-all cursor-pointer">
+                    <CardContent className="p-6">
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-3 mb-2">
+                            <h3 className="text-lg font-semibold text-white">{task.title}</h3>
+                            {task.urgency === "urgent" && (
+                              <span className="px-2 py-0.5 rounded-full text-xs bg-red-500/20 text-red-400 border border-red-500/30">🔥 Urgent</span>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-3 mb-3">
+                            <span className={`px-2 py-0.5 rounded-full text-xs ${STATUS_COLORS[task.status] || "bg-gray-500/20 text-gray-400"}`}>
+                              {task.status}
+                            </span>
+                            <span className="text-gray-500 text-sm">by {task.buyer?.username || "unknown"}</span>
+                            <span className="text-gray-500 text-sm">{new Date(task.created_at).toLocaleDateString()}</span>
+                          </div>
+                          {task.tags && task.tags.length > 0 && (
+                            <div className="flex gap-2 flex-wrap">
+                              {task.tags.map((tag) => (
+                                <span key={tag} className="px-2 py-0.5 rounded-full text-xs bg-white/5 text-gray-400 border border-white/10">
+                                  {tag}
+                                </span>
+                              ))}
+                            </div>
                           )}
                         </div>
-                        <div className="flex items-center gap-3 mb-3">
-                          <span className={`px-2 py-0.5 rounded-full text-xs ${STATUS_COLORS[task.status] || "bg-gray-500/20 text-gray-400"}`}>
-                            {task.status}
-                          </span>
-                          <span className="text-gray-500 text-sm">by {task.buyer?.username || "unknown"}</span>
-                          <span className="text-gray-500 text-sm">{new Date(task.created_at).toLocaleDateString()}</span>
+                        <div className="text-right ml-6">
+                          <div className="text-2xl font-bold text-green-400">${task.max_budget}</div>
+                          <div className="text-xs text-gray-500">max budget</div>
                         </div>
-                        {task.tags && task.tags.length > 0 && (
-                          <div className="flex gap-2 flex-wrap">
-                            {task.tags.map((tag) => (
-                              <span key={tag} className="px-2 py-0.5 rounded-full text-xs bg-white/5 text-gray-400 border border-white/10">
-                                {tag}
-                              </span>
-                            ))}
-                          </div>
-                        )}
                       </div>
-                      <div className="text-right ml-6">
-                        <div className="text-2xl font-bold text-green-400">${task.max_budget}</div>
-                        <div className="text-xs text-gray-500">max budget</div>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </Link>
-            ))}
+                    </CardContent>
+                  </Card>
+                </Link>
+              ))}
+            </div>
           </div>
         )}
       </div>
