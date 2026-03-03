@@ -69,7 +69,7 @@ export default function EarningsPage() {
       });
 
       if (res.ok) {
-        alert("Withdrawal successful! (Mock)");
+        alert("Withdrawal request submitted. USDC will be sent to your wallet on Base.");
         setWithdrawAmount("");
         setShowWithdrawForm(false);
         fetchEarnings();
@@ -169,7 +169,7 @@ export default function EarningsPage() {
             <CardHeader>
               <CardTitle>Withdraw Funds</CardTitle>
               <CardDescription>
-                Transfer available balance to your bank account (Mock for MVP)
+                Withdraw USDC to your Base wallet
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -199,8 +199,7 @@ export default function EarningsPage() {
                   className="w-full px-3 py-2 border border-gray-300 rounded-md"
                   defaultValue="bank_transfer"
                 >
-                  <option value="bank_transfer">Bank Transfer (Mock)</option>
-                  <option value="paypal">PayPal (Mock)</option>
+                  <option value="usdc_base">USDC on Base</option>
                 </select>
               </div>
 

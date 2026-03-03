@@ -123,11 +123,11 @@ export default function DashboardPage() {
             </div>
             <div className="mb-1">
               <span className="text-3xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
-                ${wallet?.balance?.toFixed(2) || "0.00"}
+                {wallet?.balance?.toFixed(2) || "0.00"} USDC
               </span>
             </div>
             <p className="text-sm text-slate-500 mb-4">
-              In escrow: ${wallet?.escrow_balance?.toFixed(2) || "0.00"}
+              In escrow: {wallet?.escrow_balance?.toFixed(2) || "0.00"} USDC
             </p>
             <Link href="/wallet">
               <Button className="w-full bg-slate-800 hover:bg-slate-700 text-white border-slate-700" size="sm">

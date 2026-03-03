@@ -1,56 +1,42 @@
-import { NextRequest } from "next/server";
-import { db } from "@/drizzle/db";
-import { wallets } from "@/drizzle/schema";
+import { NextRequest, NextResponse } from "next/server";
 import { requireAuth } from "@/lib/auth/session";
-import { success, unauthorized, serverError } from "@/lib/utils/api";
-import { eq } from "drizzle-orm";
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || process.env.API_URL || "http://localhost:8080";
 
 /**
  * GET /api/wallet
- * Get current user's wallet
+ * Proxy to Go backend for real USDC wallet info
  */
 export async function GET(request: NextRequest) {
   try {
     const user = await requireAuth();
 
-    const wallet = await db.query.wallets.findFirst({
-      where: eq(wallets.userId, user.id),
-    });
-
-    if (!wallet) {
-      // Create wallet if it doesn't exist
-      const [newWallet] = await db
-        .insert(wallets)
-        .values({
-          userId: user.id,
-          balance: "0.00",
-          escrowBalance: "0.00",
-        })
-        .returning();
-
-      return success({
-        wallet: {
-          balance: 0.0,
-          escrow_balance: 0.0,
-          total_topped_up: 0.0,
-          total_withdrawn: 0.0,
-        },
-      });
+    const res = await fetch(`${API_URL}/api/wallet?user_id=${encodeURIComponent(user.id)}`);
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      return NextResponse.json(
+        { error: data.error || "Failed to fetch wallet" },
+        { status: res.status }
+      );
     }
 
-    return success({
+    const wallet = await res.json();
+
+    // Return in a format compatible with dashboard expectations
+    return NextResponse.json({
       wallet: {
-        balance: parseFloat(wallet.balance),
-        escrow_balance: parseFloat(wallet.escrowBalance),
-        total_topped_up: 0.0, // TODO: Calculate from transactions
-        total_withdrawn: 0.0, // TODO: Calculate from transactions
+        balance: wallet.balance || 0,
+        escrow_balance: wallet.escrow_held || 0,
+        deposit_address: wallet.deposit_address || "",
+        chain: wallet.chain || "Base",
+        currency: wallet.currency || "USDC",
       },
     });
   } catch (err: any) {
     if (err.message === "Unauthorized") {
-      return unauthorized();
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
     console.error("Error fetching wallet:", err);
-    return serverError(err.message);
+    return NextResponse.json({ error: err.message }, { status: 500 });
   }
 }
