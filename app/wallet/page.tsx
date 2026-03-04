@@ -14,7 +14,10 @@ interface WalletInfo {
   balance: number;
   escrow_held: number;
   deposit_address: string;
+  platform_address: string;
   deposit_source: string;
+  unique_deposit_addr: string;
+  hd_index: number;
   currency: string;
   chain: string;
 }
@@ -39,6 +42,9 @@ export default function WalletPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [copied, setCopied] = useState(false);
+  const [sourceAddress, setSourceAddress] = useState("");
+  const [sourceLoading, setSourceLoading] = useState(false);
+  const [sourceSuccess, setSourceSuccess] = useState("");
 
   useEffect(() => {
     if (status === "unauthenticated") router.push("/login");
@@ -119,6 +125,32 @@ export default function WalletPage() {
     }
   };
 
+  const handleRegisterSource = async () => {
+    setError("");
+    setSourceSuccess("");
+    if (!sourceAddress.match(/^0x[a-fA-F0-9]{40}$/)) {
+      setError("Enter a valid wallet address (0x...)");
+      return;
+    }
+    setSourceLoading(true);
+    try {
+      const res = await fetch(`${API_URL}/api/wallet/deposit-address`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ user_id: userId, address: sourceAddress }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to register address");
+      setSourceSuccess("Source wallet registered! Deposits from this address will be auto-detected.");
+      setSourceAddress("");
+      fetchWallet();
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setSourceLoading(false);
+    }
+  };
+
   const copyAddress = () => {
     if (wallet?.deposit_address) {
       navigator.clipboard.writeText(wallet.deposit_address);
@@ -194,7 +226,7 @@ export default function WalletPage() {
           <CardContent className="space-y-4">
             {wallet?.deposit_address ? (
               <div className="bg-slate-800/50 border border-slate-700 rounded-lg p-4">
-                <p className="text-xs text-slate-500 mb-1 uppercase tracking-wide">Platform Deposit Address (Base)</p>
+                <p className="text-xs text-slate-500 mb-1 uppercase tracking-wide">Your Deposit Address (Base)</p>
                 <div className="flex items-center gap-2">
                   <code className="text-sm text-blue-400 font-mono flex-1 break-all">{wallet.deposit_address}</code>
                   <Button size="sm" variant="outline" className="border-slate-600 text-slate-300 shrink-0" onClick={copyAddress}>
@@ -206,6 +238,41 @@ export default function WalletPage() {
             ) : (
               <p className="text-slate-500">Deposit address not available. Backend may be offline.</p>
             )}
+
+            {/* Register Source Wallet */}
+            <div className="border-t border-slate-700 pt-4">
+              <p className="text-sm font-medium text-slate-300 mb-2">Register Source Wallet</p>
+              <p className="text-xs text-slate-500 mb-3">
+                Register the external wallet address you&apos;ll send USDC from. This helps auto-detect your deposits.
+              </p>
+              {wallet?.deposit_source && (
+                <div className="bg-slate-800/50 border border-slate-700 rounded-lg p-3 mb-3">
+                  <p className="text-xs text-slate-500 mb-1">Current registered source:</p>
+                  <code className="text-xs text-green-400 font-mono break-all">{wallet.deposit_source}</code>
+                </div>
+              )}
+              {sourceSuccess && (
+                <div className="bg-green-500/10 border border-green-500/30 text-green-400 rounded-lg p-3 mb-3 text-sm">
+                  {sourceSuccess}
+                </div>
+              )}
+              <div className="flex gap-2 items-center">
+                <Input
+                  placeholder="Your external wallet (0x...)"
+                  value={sourceAddress}
+                  onChange={(e) => setSourceAddress(e.target.value)}
+                  className="flex-1 bg-slate-800 border-slate-700 text-white font-mono text-sm"
+                />
+                <Button
+                  onClick={handleRegisterSource}
+                  disabled={sourceLoading}
+                  size="sm"
+                  className="bg-green-600 hover:bg-green-500 text-white shrink-0"
+                >
+                  {sourceLoading ? "Saving..." : "Register"}
+                </Button>
+              </div>
+            </div>
 
             <div className="border-t border-slate-700 pt-4">
               <p className="text-sm text-slate-400 mb-3">Or buy USDC with a card:</p>
